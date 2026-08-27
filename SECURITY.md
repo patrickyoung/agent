@@ -31,6 +31,11 @@ symlinked skill directories, and delegates the fail-then-pass verdict to Hone.
 Treat it as a controller-authorized definition amendment, never an automatic
 end-of-run hook.
 
+`agent history` is read-only and delegates archive parsing to Trail. The
+wrapper scopes archive operations and session paths to the selected home's
+`.agent/runs/`, refuses symlinked or outside session files, and delegates
+replay checking to Ask. Session output is sensitive and is not redacted.
+
 ## What it does not confine
 
 Cage is not a confidentiality, identity, CPU, memory, process-count, syscall,

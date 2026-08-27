@@ -38,6 +38,21 @@ printf '%s\n' 'fixture lesson'
 exit "${AGENT_TEST_HONE_EXIT:-0}"
 EOF
 
+cat >"$fake_bin/trail" <<'EOF'
+#!/bin/sh
+set -eu
+: "${AGENT_TEST_CAPTURE:?}"
+printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/trail-argv"
+printf '%s\n' "${ASK:-}" >"$AGENT_TEST_CAPTURE/trail-ask"
+printf '%s\n' '{"kind":"fixture-history"}'
+exit "${AGENT_TEST_TRAIL_EXIT:-0}"
+EOF
+
+cat >"$fake_bin/ask" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+
 cat >"$fake_bin/ply" <<'EOF'
 #!/bin/sh
 set -eu
@@ -65,7 +80,7 @@ printf '%s\n' 'fixture answer'
 exit "${AGENT_TEST_PLY_EXIT:-0}"
 EOF
 
-chmod 755 "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/ply"
+chmod 755 "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/ply" "$fake_bin/trail"
 
 failures=0
 checks=0
@@ -370,6 +385,60 @@ if "$agent" learn -into '../outside' "$home" recovery >/dev/null 2>&1; then
   not_ok 'learn refuses path-shaped skill destinations'
 else
   ok 'learn refuses path-shaped skill destinations'
+fi
+
+history_stdout=$tmp/history-stdout
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_TRAIL="$fake_bin/trail" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" history "$home" >"$history_stdout" 2>/dev/null
+assert_contains 'history preserves Trail JSONL stdout' "$history_stdout" 'fixture-history'
+assert_contains 'history defaults to Trail list' "$capture/trail-argv" 'ls'
+assert_contains 'history scopes list to home evidence' "$capture/trail-argv" "$home/.agent/runs"
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_TRAIL="$fake_bin/trail" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" history "$home" find 'connection reset; $(literal)' >/dev/null 2>/dev/null
+assert_contains 'history forwards one literal semantic query' "$capture/trail-argv" 'connection reset; $(literal)'
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_TRAIL="$fake_bin/trail" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" history "$home" show recovery >/dev/null 2>/dev/null
+assert_contains 'history resolves a session inside home evidence' "$capture/trail-argv" "$recovery"
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_TRAIL="$fake_bin/trail" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" history "$home" window -before 2 -after 1 recovery 4 >/dev/null 2>/dev/null
+assert_contains 'history forwards bounded windows' "$capture/trail-argv" '-before'
+assert_contains 'history window keeps the selected session' "$capture/trail-argv" "$recovery"
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_TRAIL="$fake_bin/trail" \
+AGENT_ASK="$fake_bin/ask" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" history "$home" check >/dev/null 2>/dev/null
+assert_contains 'history check delegates replay to exact Ask' "$capture/trail-ask" "$fake_bin/ask"
+
+if AGENT_BRIEF="$fake_bin/brief" AGENT_TRAIL="$fake_bin/trail" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" history "$home" show "$outside_session" >/dev/null 2>&1; then
+  not_ok 'history refuses sessions outside home evidence'
+else
+  ok 'history refuses sessions outside home evidence'
+fi
+
+if AGENT_BRIEF="$fake_bin/brief" AGENT_TRAIL="$fake_bin/trail" AGENT_TEST_CAPTURE="$capture" \
+   AGENT_TEST_TRAIL_EXIT=1 "$agent" history "$home" >/dev/null 2>&1; then
+  not_ok 'history preserves Trail negative status'
+else
+  status=$?
+  if [ "$status" -eq 1 ]; then
+    ok 'history preserves Trail negative status'
+  else
+    not_ok 'history preserves Trail negative status'
+  fi
 fi
 
 linked_skills=$tmp/linked-skills

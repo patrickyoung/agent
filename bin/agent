@@ -33,6 +33,7 @@ agent — compile and run a directory-shaped digital worker
                                    run one direct child with separate evidence
   agent learn -into SKILL [flags] HOME SESSION
                                    offer one verified recovery to Hone
+  agent history HOME [COMMAND ...] browse this home's replay evidence
   agent version                    print the version
   agent help                       print this summary
 
@@ -51,8 +52,17 @@ learning:
   agent learn -into SKILL [flags] HOME SESSION
   flags: -m MODEL -n COUNT -N -why -q
 
-env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE override dependencies
-exit: 0 accepted · 1 invalid home · 2 broken · Ply/May/Cage statuses preserved
+history:
+  agent history HOME [ls]
+  agent history HOME find QUERY
+  agent history HOME show SESSION
+  agent history HOME window [-before N] [-after N] SESSION SEQ
+  agent history HOME lineage SESSION
+  agent history HOME check
+
+env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE AGENT_TRAIL AGENT_ASK
+     override dependencies
+exit: 0 accepted · 1 negative verdict · 2 broken · composed filter statuses preserved
 EOF
 }
 
@@ -62,6 +72,8 @@ tool() {
 		AGENT_BRIEF) value=${AGENT_BRIEF:-} ;;
 		AGENT_CAGE) value=${AGENT_CAGE:-} ;;
 		AGENT_HONE) value=${AGENT_HONE:-} ;;
+		AGENT_TRAIL) value=${AGENT_TRAIL:-} ;;
+		AGENT_ASK) value=${AGENT_ASK:-} ;;
 		*) die "internal unknown tool variable: $1" ;;
 	esac
 	fallback=$2
@@ -725,6 +737,80 @@ learn_home() {
 	return "$rc"
 }
 
+history_home() {
+	[ "$#" -ge 1 ] || die 'history needs HOME'
+	open_home "$1"
+	shift
+	if ! check_home >/dev/null; then
+		return 1
+	fi
+
+	trail_bin=$(tool AGENT_TRAIL trail)
+	archive=$HOME_DIR/.agent/runs
+	history_command=${1:-ls}
+	[ "$#" -eq 0 ] || shift
+	case $history_command in
+		ls)
+			[ "$#" -eq 0 ] || die 'history ls takes no arguments'
+			set -- ls "$archive"
+			;;
+		find)
+			[ "$#" -eq 1 ] || die 'history find needs one quoted QUERY'
+			[ -n "$1" ] || die 'history find query is empty'
+			set -- find "$1" "$archive"
+			;;
+		show)
+			[ "$#" -eq 1 ] || die 'history show needs SESSION'
+			session_in_home "$1"
+			set -- show "$SESSION_FILE"
+			;;
+		window)
+			before=
+			after=
+			while [ "$#" -gt 0 ]; do
+				case $1 in
+					-before|-after)
+						flag=$1
+						[ "$#" -ge 2 ] || die "history window $flag needs N"
+						case $2 in ''|*[!0-9]*) die "history window $flag must be a non-negative integer" ;; esac
+						if [ "$flag" = -before ]; then before=$2; else after=$2; fi
+						shift 2
+						;;
+					-*) die "unknown history window flag: $1" ;;
+					*) break ;;
+				esac
+			done
+			[ "$#" -eq 2 ] || die 'history window needs SESSION and SEQ'
+			session_in_home "$1"
+			seq=$2
+			case $seq in ''|*[!0-9]*) die 'history window SEQ must be a positive integer' ;; esac
+			[ "$seq" -gt 0 ] || die 'history window SEQ must be a positive integer'
+			set -- window
+			[ -z "$before" ] || set -- "$@" -before "$before"
+			[ -z "$after" ] || set -- "$@" -after "$after"
+			set -- "$@" "$SESSION_FILE" "$seq"
+			;;
+		lineage)
+			[ "$#" -eq 1 ] || die 'history lineage needs SESSION'
+			session_in_home "$1"
+			set -- lineage "$SESSION_FILE" "$archive"
+			;;
+		check)
+			[ "$#" -eq 0 ] || die 'history check takes no arguments'
+			ask_bin=$(tool AGENT_ASK ask)
+			export ASK=$ask_bin
+			set -- check "$archive"
+			;;
+		*) die "unknown history command: $history_command" ;;
+	esac
+	say "history · home=$HOME_DIR · evidence=$archive · command=$history_command"
+	set +e
+	"$trail_bin" "$@"
+	rc=$?
+	set -e
+	return "$rc"
+}
+
 cmd=${1:-help}
 case $cmd in
 	help|-h|--help)
@@ -762,6 +848,10 @@ case $cmd in
 	learn)
 		shift
 		learn_home "$@"
+		;;
+	history)
+		shift
+		history_home "$@"
 		;;
 	*)
 		die "unknown command: $cmd (run agent help)"

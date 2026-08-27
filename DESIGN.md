@@ -32,6 +32,9 @@ The complete research and product rationale is in
 - [x] Nested homes are exposed as bounded, separately replayable specialists.
 - [x] Verified recoveries can be offered explicitly to Hone without creating
       an automatic memory path.
+- [x] Prior run evidence can be listed, searched, shown, windowed, lineage-
+      inspected, and replay-checked through Trail without another session
+      parser or writer.
 
 ## Not doing
 
@@ -55,7 +58,7 @@ The complete research and product rationale is in
 | call the model and record turns | ask, through ply | it owns providers and sessions |
 | confine model-authored actions | cage | it owns the OS boundary |
 | admit learned procedures | hone | it owns verified learning |
-| browse prior runs | trail, later | it owns Ask archive reading |
+| browse prior runs | trail | it owns read-only Ask archive inspection |
 
 ## Data
 

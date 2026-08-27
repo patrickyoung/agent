@@ -61,6 +61,7 @@ agent run [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent specialist PARENT NAME [run flags] [-- input ...]
 agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-q] HOME SESSION
+agent history HOME [ls|find|show|window|lineage|check ...]
 agent help
 agent version
 ```
@@ -90,12 +91,20 @@ was learned. `-N` previews without writing, and `.agent/learning/` keeps the
 model calls that word accepted lessons. There is no automatic `MEMORY.md`
 rewrite.
 
+`agent history` is the read-only evidence browser. It composes Trail over the
+home's `.agent/runs/` archive and returns Trail's JSONL and exit status
+unchanged. `ls` is the default; `find QUERY`, `show SESSION`, bounded `window`,
+`lineage SESSION`, and replay `check` mirror Trail's public commands. Session
+commands accept only regular non-symlinked evidence files beneath that home;
+`check` delegates replay integrity to Ask through Trail.
+
 ## Dependencies
 
-`run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. Environment
-overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, and `AGENT_HONE` are
-available for a pinned suite and offline tests. `check` only needs Brief when
-`skills/` contains a skill.
+`run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. `learn` needs
+Hone; `history` needs Trail, and its `check` command also needs Ask.
+Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
+`AGENT_TRAIL`, and `AGENT_ASK` are available for a pinned suite and offline
+tests. `check` only needs Brief when `skills/` contains a skill.
 
 `just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
 beside the other standalone Bench filters.
@@ -107,5 +116,6 @@ values, credentials, or programs from the worker.
 ## Status
 
 The implemented vertical slices scaffold, validate, inspect, run, cheaply
-tick, invoke direct specialists, and explicitly learn from verified recovery.
-Pinned-suite packaging and the Bench UI remain follow-on slices.
+tick, invoke direct specialists, explicitly learn from verified recovery, and
+browse replay history without writing it. Pinned-suite packaging and the
+interactive Bench UI remain follow-on slices.
