@@ -82,6 +82,31 @@ physical_dir() {
 	)
 }
 
+resolve_program() {
+	program=$1
+	case $program in
+		*/*) ;;
+		*) program=$(command -v "$program") || return 1 ;;
+	esac
+	case $program in
+		/*) ;;
+		*) program=$PWD/$program ;;
+	esac
+	hops=0
+	while [ -L "$program" ]; do
+		hops=$((hops + 1))
+		[ "$hops" -le 32 ] || return 1
+		program_dir=$(physical_dir "$(dirname "$program")") || return 1
+		target=$(readlink "$program") || return 1
+		case $target in
+			/*) program=$target ;;
+			*) program=$program_dir/$target ;;
+		esac
+	done
+	program_dir=$(physical_dir "$(dirname "$program")") || return 1
+	printf '%s/%s\n' "$program_dir" "$(basename "$program")"
+}
+
 bytes() {
 	wc -c <"$1" | tr -d '[:space:]'
 }
@@ -524,7 +549,8 @@ run_home() {
 	action_shell=
 	if [ "$use_cage" -eq 1 ]; then
 		cage_bin=$(tool AGENT_CAGE cage)
-		action_shell=$(physical_dir "$(dirname "$0")")/agent-action-shell
+		agent_bin=$(resolve_program "$0") || die "cannot resolve agent executable: $0"
+		action_shell=$(physical_dir "$(dirname "$agent_bin")")/agent-action-shell
 		[ -x "$action_shell" ] || die "action shell is not executable: $action_shell"
 		export AGENT_CAGE=$cage_bin AGENT_NET=$net
 	else
@@ -564,7 +590,10 @@ run_home() {
 	export AGENT_HOME=$HOME_DIR
 	export AGENT_WORK=$HOME_DIR/work
 	export AGENT_STATE=$HOME_DIR/state
-	export AGENT_BIN=$(command -v "$0" 2>/dev/null || printf '%s' "$0")
+	if [ -z "${agent_bin:-}" ]; then
+		agent_bin=$(resolve_program "$0") || die "cannot resolve agent executable: $0"
+	fi
+	export AGENT_BIN=$agent_bin
 	export BRIEF=$brief_bin
 	export BRIEF_PATH=$HOME_DIR/skills
 	export PLY_DIR=$HOME_DIR/.agent/runs

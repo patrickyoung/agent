@@ -406,6 +406,16 @@ assert_contains 'effort selection is forwarded' "$capture/argv" 'high'
 assert_contains 'confined action shell is forwarded' "$capture/argv" 'agent-action-shell'
 assert_not_contains 'context body does not leak into argv' "$capture/argv" 'Own the support queue'
 
+link_bin=$tmp/link-bin
+mkdir -p "$link_bin"
+ln -s "$agent" "$link_bin/agent"
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_PLY="$fake_bin/ply" \
+AGENT_CAGE="$fake_bin/cage" \
+AGENT_TEST_CAPTURE="$capture" \
+"$link_bin/agent" run "$home" >/dev/null 2>/dev/null
+assert_contains 'installed symlink resolves private action wrapper' "$capture/argv" "$here/bin/agent-action-shell"
+
 if AGENT_BRIEF="$fake_bin/brief" \
    AGENT_PLY="$fake_bin/ply" \
    AGENT_CAGE="$fake_bin/cage" \
