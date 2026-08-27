@@ -32,7 +32,8 @@ support-chief/
   state/          mutable durable state, not injected into context
     kv/           file-shaped key/value state for simple durable facts
   .agent/runs/    replayable Ask sessions and Ply verifier receipts
-  .agent/learning/ Hone wording sessions for explicitly admitted lessons
+  .agent/learning/ Hone wording sessions and reviewed proposal evidence
+    proposals/     exact user-named lesson artifacts awaiting admission
   .agent/amendments/ controller receipts for approved definition patches
 ```
 
@@ -62,7 +63,9 @@ agent show [DIR]
 agent run [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent specialist PARENT NAME [run flags] [-- input ...]
-agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-q] HOME SESSION
+agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-prepare PROPOSAL] [-q] HOME SESSION
+agent learn -show PROPOSAL HOME
+agent learn -admit PROPOSAL HOME
 agent history HOME [ls|find|show|window|lineage|check ...]
 agent proposals HOME [PATCH]
 agent amend HOME PATCH
@@ -101,6 +104,18 @@ further and asks a model to word possible lessons without writing them, but it
 is not an exact preview token: a later ordinary `learn` call generates wording
 again. Controllers must not present `-N` followed by `learn` as admission of
 the same reviewed bytes.
+
+For exact review, `-prepare NAME.json` accepts one verified home session and
+writes a new artifact beneath `.agent/learning/proposals/`, never the skill.
+It binds the source and wording sessions, current destination, and literal
+final `SKILL.md` bytes. `learn -show NAME.json HOME` is read-only and invokes
+Hone's no-call `show`. `learn -admit NAME.json HOME` invokes Hone's model-free
+admission: both provenance sessions replay, every hash and destination path is
+rechecked, the allowed append/scaffold delta is reconstructed, and only the
+exact reviewed bytes are atomically written. Portable direct-child names,
+regular files, and single links are required; existing proposal files are
+never overwritten. This is an explicit operator path, not automatic learning
+or a proposal index.
 
 `agent history` is the read-only evidence browser. It composes Trail over the
 home's `.agent/runs/` archive and returns Trail's JSONL and exit status
@@ -147,8 +162,10 @@ is scrubbed before Ply starts.
 
 ## Dependencies
 
-`run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. `learn` needs
-Hone; `history` needs Trail, and its `check` command also needs Ask.
+`run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. Learning needs
+Hone and Brief; evidence review, preparation, and admission also pin Ask for
+replay or wording, while `learn -show` calls only Hone. `history` needs Trail,
+and its `check` command also needs Ask.
 `proposals` needs Git; `amend` needs Git and May.
 Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
 `AGENT_TRAIL`, `AGENT_ASK`, and `AGENT_MAY` are available for a pinned suite
@@ -172,9 +189,10 @@ values, credentials, or programs from the worker.
 
 The implemented vertical slices scaffold, validate, inspect, run, cheaply
 tick, invoke direct specialists, explicitly learn from verified recovery,
-browse replay history without writing it, and apply one exact human-approved
-definition patch with rollback and evidence. Proposal bytes and approval
-actions are also inspectable through a bounded, read-only public command.
+prepare/show/admit exact reviewed lesson bytes, browse replay history without
+writing it, and apply one exact human-approved definition patch with rollback
+and evidence. Proposal bytes and approval actions are also inspectable through
+a bounded, read-only public command.
 Pinned-suite packaging remains a
 follow-on slice; Bench has a core interactive home view and exposes every
 Agent command through its headless boundary.

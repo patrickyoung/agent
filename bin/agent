@@ -53,7 +53,9 @@ specialist:
 
 learning:
   agent learn -into SKILL [flags] HOME SESSION
-  flags: -m MODEL -n COUNT -N -why -q
+  agent learn -show PROPOSAL HOME
+  agent learn -admit PROPOSAL HOME
+  flags: -m MODEL -n COUNT -N -why -prepare PROPOSAL -q
 
 history:
   agent history HOME [ls]
@@ -251,7 +253,7 @@ check_home() {
 			rc=1
 		}
 	done
-	for name in work/proposals .agent/amendments; do
+	for name in work/proposals .agent/amendments .agent/learning/proposals; do
 		if [ -e "$HOME_DIR/$name" ] || [ -L "$HOME_DIR/$name" ]; then
 			safe_dir "$HOME_DIR/$name" "$name" || rc=1
 			[ -w "$HOME_DIR/$name" ] || {
@@ -351,6 +353,7 @@ write_context() {
 	printf -- '- durable state: `%s`\n' "$HOME_DIR/state"
 	printf -- '- run evidence: `%s` (controller-owned)\n' "$HOME_DIR/.agent/runs"
 	printf -- '- learning evidence: `%s` (controller-owned)\n' "$HOME_DIR/.agent/learning"
+	printf -- '- reviewed learning proposals: `%s` (controller-owned)\n' "$HOME_DIR/.agent/learning/proposals"
 	printf -- '- definition proposals: write patches under `%s`\n' "$HOME_DIR/work/proposals"
 
 	set -- "$HOME_DIR"/agents/*
@@ -410,7 +413,7 @@ new_home() {
 	desc=$*
 	[ -n "$desc" ] || desc='Describe this agent'
 
-	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/amendments"
+	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments"
 	cat >"$dir/AGENTS.md" <<EOF
 # Operating instructions
 
@@ -463,7 +466,7 @@ EOF
 exit 0
 EOF
 	chmod 700 "$dir/bin/check" "$dir/bin/wake"
-	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/amendments"
+	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/learning/proposals" "$dir/.agent/amendments"
 	printf '%s/AGENTS.md\n' "$dir"
 	say "scaffolded $dir; edit GOAL.md and bin/check, then run agent check $dir"
 }
@@ -496,6 +499,7 @@ show_home() {
 	printf 'check: %s\n' "$HOME_DIR/bin/check"
 	printf 'evidence: %s\n' "$HOME_DIR/.agent/runs"
 	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
+	printf 'learning-proposals: %s\n' "$HOME_DIR/.agent/learning/proposals"
 	printf 'amendment-evidence: %s\n' "$HOME_DIR/.agent/amendments"
 	printf 'default-authority: full host tool catalogue; Cage writes work+state; network denied\n'
 	printf '\n# Definition files\n\n'
@@ -714,6 +718,35 @@ session_in_home() {
 	export SESSION_FILE
 }
 
+learning_proposal_file() {
+	proposal_name=$1
+	proposal_mode=$2
+	case $proposal_name in
+		''|.*|*/*|*[!a-z0-9._-]*) die "learning proposal needs a portable .json filename: $proposal_name" ;;
+		*.json) ;;
+		*) die "learning proposal needs a portable .json filename: $proposal_name" ;;
+	esac
+	proposal_root=$HOME_DIR/.agent/learning/proposals
+	if [ "$proposal_mode" = create ] && [ ! -e "$proposal_root" ] && [ ! -L "$proposal_root" ]; then
+		mkdir "$proposal_root" || die "cannot create learning proposal directory: $proposal_root"
+		chmod 700 "$proposal_root"
+	fi
+	safe_dir "$proposal_root" .agent/learning/proposals || die "invalid learning proposal directory: $proposal_root"
+	[ -r "$proposal_root" ] && [ -w "$proposal_root" ] && [ -x "$proposal_root" ] ||
+		die "learning proposal directory is not accessible and writable: $proposal_root"
+	LEARNING_PROPOSAL_FILE=$proposal_root/$proposal_name
+	[ ! -L "$LEARNING_PROPOSAL_FILE" ] || die "learning proposal may not be a symlink: $LEARNING_PROPOSAL_FILE"
+	if [ "$proposal_mode" = read ]; then
+		safe_file "$LEARNING_PROPOSAL_FILE" 'learning proposal' || die "invalid learning proposal: $LEARNING_PROPOSAL_FILE"
+		if find "$LEARNING_PROPOSAL_FILE" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
+			die "learning proposal is multiply linked: $LEARNING_PROPOSAL_FILE"
+		fi
+	elif [ -e "$LEARNING_PROPOSAL_FILE" ]; then
+		die "learning proposal already exists: $LEARNING_PROPOSAL_FILE"
+	fi
+	export LEARNING_PROPOSAL_FILE
+}
+
 learn_home() {
 	into=
 	model=
@@ -721,6 +754,9 @@ learn_home() {
 	dry=0
 	why=0
 	quiet=0
+	prepare=
+	show=
+	admit=
 	while [ "$#" -gt 0 ]; do
 		case $1 in
 			-into) [ "$#" -ge 2 ] || die '-into needs SKILL'; into=$2; shift 2 ;;
@@ -728,11 +764,56 @@ learn_home() {
 			-n) [ "$#" -ge 2 ] || die '-n needs COUNT'; count=$2; shift 2 ;;
 			-N) dry=1; shift ;;
 			-why) why=1; shift ;;
+			-prepare) [ "$#" -ge 2 ] || die '-prepare needs PROPOSAL'; prepare=$2; shift 2 ;;
+			-show) [ "$#" -ge 2 ] || die '-show needs PROPOSAL'; show=$2; shift 2 ;;
+			-admit) [ "$#" -ge 2 ] || die '-admit needs PROPOSAL'; admit=$2; shift 2 ;;
 			-q) quiet=1; shift ;;
 			-*) die "unknown learn flag: $1" ;;
 			*) break ;;
 		esac
 	done
+	modes=0
+	[ -z "$prepare" ] || modes=$((modes + 1))
+	[ -z "$show" ] || modes=$((modes + 1))
+	[ -z "$admit" ] || modes=$((modes + 1))
+	[ "$modes" -le 1 ] || die 'learn accepts only one of -prepare, -show, or -admit'
+	if [ -n "$prepare" ] && { [ "$dry" -ne 0 ] || [ "$why" -ne 0 ]; }; then
+		die 'learn -prepare cannot be combined with -N or -why'
+	fi
+
+	if [ -n "$show" ] || [ -n "$admit" ]; then
+		[ -z "$into$model$count" ] && [ "$dry" -eq 0 ] && [ "$why" -eq 0 ] && [ "$quiet" -eq 0 ] ||
+			die 'learn -show/-admit do not accept wording flags or -into'
+		[ "$#" -eq 1 ] || die 'learn -show/-admit need HOME and no SESSION'
+		open_home "$1"
+		if ! check_home; then
+			return 1
+		fi
+		proposal_name=$show
+		operation=show
+		if [ -n "$admit" ]; then
+			proposal_name=$admit
+			operation=admit
+		fi
+		learning_proposal_file "$proposal_name" read
+		hone_bin=$(tool AGENT_HONE hone)
+		export HONE_DIR=$HOME_DIR/.agent/learning
+		if [ "$operation" = admit ]; then
+			[ -w "$HOME_DIR/skills" ] || die "skills directory is not writable by the controller: $HOME_DIR/skills"
+			ask_bin=$(tool AGENT_ASK ask)
+			brief_bin=$(tool AGENT_BRIEF brief)
+			export ASK=$ask_bin
+			export BRIEF=$brief_bin
+			export BRIEF_PATH=$HOME_DIR/skills
+		fi
+		say "learn $operation · proposal=$LEARNING_PROPOSAL_FILE · skill-root=$HOME_DIR/skills"
+		set +e
+		"$hone_bin" "$operation" "$LEARNING_PROPOSAL_FILE"
+		rc=$?
+		set -e
+		return "$rc"
+	fi
+
 	[ -n "$into" ] || die 'learn requires -into SKILL'
 	portable_name "$into" || die "learning skill name is not portable: $into"
 	[ "$#" -eq 2 ] || die 'learn needs HOME and SESSION'
@@ -745,6 +826,8 @@ learn_home() {
 
 	hone_bin=$(tool AGENT_HONE hone)
 	brief_bin=$(tool AGENT_BRIEF brief)
+	ask_bin=$(tool AGENT_ASK ask)
+	export ASK=$ask_bin
 	export BRIEF=$brief_bin
 	export BRIEF_PATH=$HOME_DIR/skills
 	export HONE_DIR=$HOME_DIR/.agent/learning
@@ -753,9 +836,13 @@ learn_home() {
 	[ -z "$count" ] || set -- "$@" -n "$count"
 	[ "$dry" -eq 0 ] || set -- "$@" -N
 	[ "$why" -eq 0 ] || set -- "$@" -why
+	if [ -n "$prepare" ]; then
+		learning_proposal_file "$prepare" create
+		set -- "$@" -prepare "$LEARNING_PROPOSAL_FILE"
+	fi
 	[ "$quiet" -eq 0 ] || set -- "$@" -q
 	set -- "$@" "$SESSION_FILE"
-	say "learn · session=$SESSION_FILE · skill=$HOME_DIR/skills/$into · evidence=$HOME_DIR/.agent/learning"
+	say "learn · session=$SESSION_FILE · skill=$HOME_DIR/skills/$into · evidence=$HOME_DIR/.agent/learning${prepare:+ · proposal=$LEARNING_PROPOSAL_FILE}"
 	set +e
 	"$hone_bin" "$@"
 	rc=$?

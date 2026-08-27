@@ -34,6 +34,7 @@ set -eu
 printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/hone-argv"
 printf '%s\n' "${BRIEF_PATH:-}" >"$AGENT_TEST_CAPTURE/hone-brief-path"
 printf '%s\n' "${HONE_DIR:-}" >"$AGENT_TEST_CAPTURE/hone-dir"
+printf '%s\n' "${ASK:-}" >"$AGENT_TEST_CAPTURE/hone-ask"
 printf '%s\n' 'fixture lesson'
 exit "${AGENT_TEST_HONE_EXIT:-0}"
 EOF
@@ -163,6 +164,7 @@ assert_dir 'new creates mutable state root' "$home/state"
 assert_dir 'new creates file-shaped KV state' "$home/state/kv"
 assert_dir 'new creates run evidence root' "$home/.agent/runs"
 assert_dir 'new creates learning evidence root' "$home/.agent/learning"
+assert_dir 'new creates reviewed learning proposal root' "$home/.agent/learning/proposals"
 assert_dir 'new creates definition proposal root' "$home/work/proposals"
 assert_dir 'new creates amendment evidence root' "$home/.agent/amendments"
 
@@ -362,6 +364,7 @@ printf '%s\n' '{"fixture":"verified recovery"}' >"$recovery"
 learn_stdout=$tmp/learn-stdout
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_HONE="$fake_bin/hone" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" learn -into local-skill -m lesson-model -n 2 -N "$home" recovery \
 >"$learn_stdout" 2>/dev/null
@@ -370,16 +373,77 @@ assert_contains 'learn forwards an explicit destination skill' "$capture/hone-ar
 assert_contains 'learn forwards the exact home session' "$capture/hone-argv" "$recovery"
 assert_contains 'learn scopes writes to home skills' "$capture/hone-brief-path" "$home/skills"
 assert_contains 'learn stores wording evidence under controller state' "$capture/hone-dir" "$home/.agent/learning"
+assert_contains 'learn pins Ask for replay and wording' "$capture/hone-ask" "$fake_bin/ask"
 assert_contains 'learn forwards dry-run mode' "$capture/hone-argv" '-N'
 
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_HONE="$fake_bin/hone" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" learn -into local-skill -why "$home" recovery >/dev/null 2>/dev/null
 assert_contains 'learn forwards model-free evidence review' "$capture/hone-argv" '-why'
 
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_HONE="$fake_bin/hone" \
+AGENT_ASK="$fake_bin/ask" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" learn -into local-skill -prepare recovery.json "$home" recovery >/dev/null 2>/dev/null
+learning_proposal=$home/.agent/learning/proposals/recovery.json
+assert_contains 'learn scopes exact proposal preparation' "$capture/hone-argv" "$learning_proposal"
+assert_contains 'learn forwards Hone exact preparation' "$capture/hone-argv" '-prepare'
+
+printf '%s\n' '{"version":"hone.proposal/v1"}' >"$learning_proposal"
+chmod 600 "$learning_proposal"
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_HONE="$fake_bin/hone" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" learn -show recovery.json "$home" >/dev/null 2>/dev/null
+assert_contains 'learn show invokes Hone without a session' "$capture/hone-argv" 'show'
+assert_contains 'learn show reads the scoped proposal' "$capture/hone-argv" "$learning_proposal"
+assert_not_contains 'learn show resolves no Ask program' "$capture/hone-ask" "$fake_bin/ask"
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_HONE="$fake_bin/hone" \
+AGENT_ASK="$fake_bin/ask" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" learn -admit recovery.json "$home" >/dev/null 2>/dev/null
+assert_contains 'learn admit invokes Hone on reviewed bytes' "$capture/hone-argv" 'admit'
+assert_contains 'learn admit pins Ask for provenance replay' "$capture/hone-ask" "$fake_bin/ask"
+
+if AGENT_BRIEF="$fake_bin/brief" AGENT_HONE="$fake_bin/hone" AGENT_ASK="$fake_bin/ask" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" learn -prepare recovery.json -into local-skill "$home" recovery >/dev/null 2>&1; then
+  not_ok 'learn refuses to overwrite an exact proposal'
+else
+  ok 'learn refuses to overwrite an exact proposal'
+fi
+
+if "$agent" learn -show '../outside.json' "$home" >/dev/null 2>&1; then
+  not_ok 'learn refuses path-shaped proposal names'
+else
+  ok 'learn refuses path-shaped proposal names'
+fi
+
+outside_proposal=$tmp/outside-proposal.json
+printf '%s\n' '{}' >"$outside_proposal"
+ln -s "$outside_proposal" "$home/.agent/learning/proposals/link.json"
+if AGENT_BRIEF="$fake_bin/brief" AGENT_HONE="$fake_bin/hone" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" learn -show link.json "$home" >/dev/null 2>&1; then
+  not_ok 'learn refuses symlinked proposal artifacts'
+else
+  ok 'learn refuses symlinked proposal artifacts'
+fi
+
+ln "$outside_proposal" "$home/.agent/learning/proposals/hard.json"
+if AGENT_BRIEF="$fake_bin/brief" AGENT_HONE="$fake_bin/hone" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" learn -show hard.json "$home" >/dev/null 2>&1; then
+  not_ok 'learn refuses multiply-linked proposal artifacts'
+else
+  ok 'learn refuses multiply-linked proposal artifacts'
+fi
+
 if AGENT_BRIEF="$fake_bin/brief" \
    AGENT_HONE="$fake_bin/hone" \
+   AGENT_ASK="$fake_bin/ask" \
    AGENT_TEST_CAPTURE="$capture" \
    AGENT_TEST_HONE_EXIT=1 \
    "$agent" learn -into local-skill "$home" recovery >/dev/null 2>&1; then

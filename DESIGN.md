@@ -35,6 +35,10 @@ The complete research and product rationale is in
 - [x] `learn -why` exposes replay-verified recovery evidence without a model
       call or skill write; generated dry-run wording is not misrepresented as
       an exact later admission.
+- [x] Exact learning proposals are user-named controller artifacts; prepare
+      never overwrites or writes a skill, show calls nothing, and admission
+      replays both provenance sessions, rejects stale paths/bytes, and writes
+      the reviewed Hone delta without another model call.
 - [x] Prior run evidence can be listed, searched, shown, windowed, lineage-
       inspected, and replay-checked through Trail without another session
       parser or writer.
@@ -85,6 +89,7 @@ The complete research and product rationale is in
     evidence:
       .agent/runs/       Ask sessions and Ply verifier receipts
       .agent/learning/   Hone wording sessions
+        proposals/       exact reviewed-learning artifacts
       .agent/amendments/ accepted definition-change receipts
     derived:
       private temporary Agent Skill used only to load bounded home context
