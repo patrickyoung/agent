@@ -444,6 +444,10 @@ else
   ok 'history refuses sessions outside home evidence'
 fi
 
+empty_proposals=$tmp/empty-proposals
+AGENT_BRIEF="$fake_bin/brief" "$agent" proposals "$home" >"$empty_proposals" 2>/dev/null
+assert_contains 'proposal review reports an empty catalogue without mutation' "$empty_proposals" 'count: 0'
+
 proposal=$home/work/proposals/add-evidence-rule.patch
 cat >"$proposal" <<'EOF'
 --- a/AGENTS.md
@@ -454,6 +458,19 @@ cat >"$proposal" <<'EOF'
  - Inspect state on demand instead of loading it wholesale.
 +- Summarize the evidence that changed the plan before taking action.
 EOF
+
+rm -f "$capture/may-action"
+proposal_review=$tmp/proposal-review
+AGENT_BRIEF="$fake_bin/brief" "$agent" proposals "$home" >"$proposal_review" 2>/dev/null
+assert_contains 'proposal review prints a bounded catalogue' "$proposal_review" 'count: 1'
+assert_contains 'proposal review exposes the exact target' "$proposal_review" 'target: AGENTS.md'
+assert_contains 'proposal review exposes the exact May action' "$proposal_review" 'agent-amend/v1'
+assert_contains 'proposal review includes literal patch bytes' "$proposal_review" 'Summarize the evidence that changed the plan'
+if [ ! -e "$capture/may-action" ]; then
+  ok 'proposal review does not invoke May'
+else
+  not_ok 'proposal review does not invoke May'
+fi
 
 set +e
 AGENT_BRIEF="$fake_bin/brief" \

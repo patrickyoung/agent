@@ -41,6 +41,8 @@ The complete research and product rationale is in
 - [x] Definition changes use one reviewed unified diff, an exact one-shot May
       grant, stale-input rechecks, complete home validation, rollback, and a
       controller-owned receipt.
+- [x] Proposal review is a bounded, side-effect-free public command that shows
+      literal patch bytes and the exact action before May is invoked.
 
 ## Not doing
 

@@ -8,6 +8,7 @@ ME=agent
 VERSION=0.1.0
 CONTEXT_MAX=65536
 FILE_MAX=32768
+PROPOSAL_MAX=16
 
 say() {
 	printf '%s: %s\n' "$ME" "$*" >&2
@@ -34,6 +35,7 @@ agent — compile and run a directory-shaped digital worker
   agent learn -into SKILL [flags] HOME SESSION
                                    offer one verified recovery to Hone
   agent history HOME [COMMAND ...] browse this home's replay evidence
+  agent proposals HOME [PATCH]    inspect proposals without changing the home
   agent amend HOME PATCH          apply one reviewed definition patch via May
   agent version                    print the version
   agent help                       print this summary
@@ -62,6 +64,9 @@ history:
   agent history HOME check
 
 amendment:
+  agent proposals HOME [PATCH]
+                print bounded patch bytes and the exact May action; never ask
+                for approval or change the home
   agent amend HOME PATCH
                 dry-run one root definition-file patch, bind its exact hashes
                 through May, then apply and revalidate only after approval
@@ -844,10 +849,94 @@ proposal_in_home() {
 	parent=$(physical_dir "$(dirname "$candidate")") || die "proposal directory not found: $candidate"
 	PROPOSAL_FILE=$parent/$(basename "$candidate")
 	[ "$parent" = "$(physical_dir "$proposal_root")" ] || die "proposal is outside this home's work/proposals: $PROPOSAL_FILE"
+	proposal_name=$(basename "$PROPOSAL_FILE")
+	case $proposal_name in
+		''|.*|*[!A-Za-z0-9._-]*) die "proposal needs a portable .patch filename: $proposal_name" ;;
+		*.patch) ;;
+		*) die "proposal needs a portable .patch filename: $proposal_name" ;;
+	esac
 	safe_file "$PROPOSAL_FILE" proposal || die "invalid proposal: $PROPOSAL_FILE"
 	proposal_bytes=$(bytes "$PROPOSAL_FILE")
 	[ "$proposal_bytes" -le "$FILE_MAX" ] || die "proposal is $proposal_bytes bytes; the limit is $FILE_MAX"
 	export PROPOSAL_FILE
+}
+
+inspect_amendment() {
+	command -v git >/dev/null 2>&1 || die 'amend needs git for strict patch parsing and application'
+
+	stats=$(cd "$HOME_DIR" && git apply --numstat "$PROPOSAL_FILE") || die 'proposal is not a parseable patch'
+	[ "$(printf '%s\n' "$stats" | sed '/^$/d' | wc -l | tr -d '[:space:]')" -eq 1 ] || die 'amend accepts exactly one definition file per proposal'
+	AMEND_TARGET=$(printf '%s\n' "$stats" | awk -F '\t' 'NF == 3 { print $3 }')
+	case $AMEND_TARGET in
+		AGENTS.md|GOAL.md|SOUL.md|PLAN.md|HEARTBEAT.md|MEMORY.md) ;;
+		*) die "amend target is not a supported root definition file: $AMEND_TARGET" ;;
+	esac
+	[ ! -L "$HOME_DIR/$AMEND_TARGET" ] || die "amend target may not be a symlink: $AMEND_TARGET"
+	safe_file "$HOME_DIR/$AMEND_TARGET" 'amend target' || die "invalid amend target: $AMEND_TARGET"
+	if find "$HOME_DIR/$AMEND_TARGET" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
+		die "amend target is multiply linked: $AMEND_TARGET"
+	fi
+	(cd "$HOME_DIR" && git apply --check "$PROPOSAL_FILE") || die 'proposal does not apply cleanly to the current definition'
+
+	AMEND_BEFORE_HASH=$(definition_hash)
+	AMEND_PROPOSAL_HASH=$(hash_file "$PROPOSAL_FILE")
+	AMEND_JOB=agent-amend-$AMEND_BEFORE_HASH-$AMEND_PROPOSAL_HASH
+	AMEND_ACTION=$(printf '%s\n' \
+		'agent-amend/v1' \
+		"home: $HOME_DIR" \
+		"definition-sha256: $AMEND_BEFORE_HASH" \
+		"target: $AMEND_TARGET" \
+		"proposal: $PROPOSAL_FILE" \
+		"proposal-sha256: $AMEND_PROPOSAL_HASH" \
+		'effect: apply this one root definition-file patch, then require agent check')
+}
+
+print_proposal_review() {
+	inspect_amendment
+	printf '%s\n' 'agent-proposal/v1'
+	printf 'home: %s\n' "$HOME_DIR"
+	printf 'definition-sha256: %s\n' "$AMEND_BEFORE_HASH"
+	printf 'proposal: %s\n' "$PROPOSAL_FILE"
+	printf 'proposal-sha256: %s\n' "$AMEND_PROPOSAL_HASH"
+	printf 'proposal-bytes: %s\n' "$(bytes "$PROPOSAL_FILE")"
+	printf 'target: %s\n' "$AMEND_TARGET"
+	printf 'may-job: %s\n' "$AMEND_JOB"
+	printf 'may-action-sha256: %s\n' "$(printf '%s\n' "$AMEND_ACTION" | hash_stream)"
+	printf 'may-action (one final LF is included):\n%s\n' "$AMEND_ACTION"
+	printf '%s\n' 'patch-bytes:'
+	cat "$PROPOSAL_FILE"
+	printf '\n'
+}
+
+proposals_home() {
+	[ "$#" -ge 1 ] && [ "$#" -le 2 ] || die 'proposals needs HOME and optional PATCH'
+	open_home "$1"
+	if ! check_home >/dev/null; then
+		return 1
+	fi
+	if [ "$#" -eq 2 ]; then
+		proposal_in_home "$2"
+		print_proposal_review
+		return 0
+	fi
+
+	proposal_root=$HOME_DIR/work/proposals
+	safe_dir "$proposal_root" work/proposals || die "invalid proposal directory: $proposal_root"
+	set -- "$proposal_root"/*.patch
+	if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+		printf 'agent-proposals/v1\nhome: %s\ndefinition-sha256: %s\ncount: 0\n' "$HOME_DIR" "$(definition_hash)"
+		return 0
+	fi
+	[ "$#" -le "$PROPOSAL_MAX" ] || die "proposal catalogue has $# patches; the limit is $PROPOSAL_MAX"
+	proposal_total=0
+	printf 'agent-proposals/v1\nhome: %s\ndefinition-sha256: %s\ncount: %s\n' "$HOME_DIR" "$(definition_hash)" "$#"
+	for proposal_path do
+		proposal_in_home "$proposal_path"
+		proposal_total=$((proposal_total + $(bytes "$PROPOSAL_FILE")))
+		[ "$proposal_total" -le "$CONTEXT_MAX" ] || die "proposal bytes total $proposal_total; the limit is $CONTEXT_MAX"
+		printf '\n'
+		print_proposal_review
+	done
 }
 
 amend_home() {
@@ -857,21 +946,12 @@ amend_home() {
 		return 1
 	fi
 	proposal_in_home "$2"
-	command -v git >/dev/null 2>&1 || die 'amend needs git for strict patch parsing and application'
-
-	stats=$(cd "$HOME_DIR" && git apply --numstat "$PROPOSAL_FILE") || die 'proposal is not a parseable patch'
-	[ "$(printf '%s\n' "$stats" | sed '/^$/d' | wc -l | tr -d '[:space:]')" -eq 1 ] || die 'amend accepts exactly one definition file per proposal'
-	target=$(printf '%s\n' "$stats" | awk -F '\t' 'NF == 3 { print $3 }')
-	case $target in
-		AGENTS.md|GOAL.md|SOUL.md|PLAN.md|HEARTBEAT.md|MEMORY.md) ;;
-		*) die "amend target is not a supported root definition file: $target" ;;
-	esac
-	[ ! -L "$HOME_DIR/$target" ] || die "amend target may not be a symlink: $target"
-	safe_file "$HOME_DIR/$target" 'amend target' || die "invalid amend target: $target"
-	if find "$HOME_DIR/$target" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
-		die "amend target is multiply linked: $target"
-	fi
-	(cd "$HOME_DIR" && git apply --check "$PROPOSAL_FILE") || die 'proposal does not apply cleanly to the current definition'
+	inspect_amendment
+	target=$AMEND_TARGET
+	before_hash=$AMEND_BEFORE_HASH
+	proposal_hash=$AMEND_PROPOSAL_HASH
+	job=$AMEND_JOB
+	action=$AMEND_ACTION
 
 	receipt_dir=$HOME_DIR/.agent/amendments
 	if [ ! -e "$receipt_dir" ]; then
@@ -882,17 +962,6 @@ amend_home() {
 	[ -r "$receipt_dir" ] && [ -w "$receipt_dir" ] && [ -x "$receipt_dir" ] ||
 		die "amendment evidence is not accessible and writable: $receipt_dir"
 
-	before_hash=$(definition_hash)
-	proposal_hash=$(hash_file "$PROPOSAL_FILE")
-	job=agent-amend-$before_hash-$proposal_hash
-	action=$(printf '%s\n' \
-		'agent-amend/v1' \
-		"home: $HOME_DIR" \
-		"definition-sha256: $before_hash" \
-		"target: $target" \
-		"proposal: $PROPOSAL_FILE" \
-		"proposal-sha256: $proposal_hash" \
-		'effect: apply this one root definition-file patch, then require agent check')
 	may_bin=$(tool AGENT_MAY may)
 	set +e
 	may_result=$(printf '%s\n' "$action" | "$may_bin" request "$job")
@@ -994,6 +1063,10 @@ case $cmd in
 	history)
 		shift
 		history_home "$@"
+		;;
+	proposals)
+		shift
+		proposals_home "$@"
 		;;
 	amend)
 		shift

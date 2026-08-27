@@ -49,6 +49,12 @@ environment, and no Markdown instruction can approve a request. Review the
 actual diff and exact May action before deciding; approval proves consent to
 those bytes, not that they are wise.
 
+`agent proposals` is the read-only inspection half of that boundary. It uses
+the same parser and exact-action builder as `amend`, but never resolves or
+invokes May and never writes a receipt. The catalogue is capped at 16 portable
+`.patch` names, 32 KiB per file, and 64 KiB combined so a writable work tree
+cannot turn the TUI into an unbounded output sink.
+
 ## What it does not confine
 
 Cage is not a confidentiality, identity, CPU, memory, process-count, syscall,

@@ -64,6 +64,7 @@ agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent specialist PARENT NAME [run flags] [-- input ...]
 agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-q] HOME SESSION
 agent history HOME [ls|find|show|window|lineage|check ...]
+agent proposals HOME [PATCH]
 agent amend HOME PATCH
 agent help
 agent version
@@ -102,13 +103,26 @@ commands accept only regular non-symlinked evidence files beneath that home;
 `check` delegates replay integrity to Ask through Trail.
 
 `agent amend` is the reviewed definition-change path. `PATCH` must be a
-regular, non-symlinked direct child of `HOME/work/proposals/` and a conventional
-unified diff that changes exactly one existing root definition file. Agent
-parses and dry-runs it with Git, binds the physical home, current definition
-hash, target, proposal path, and proposal hash into one exact May request, and
-exits 75 without changing the definition while that request is parked. Review
-and decide the digest from a separate terminal, then retry the identical
-command:
+regular, non-symlinked direct child of `HOME/work/proposals/`, have a portable
+`.patch` filename, and be a conventional unified diff that changes exactly one
+existing root definition file. Before requesting approval, inspect one patch
+or the bounded catalogue without side effects:
+
+```sh
+agent proposals support-chief
+agent proposals support-chief tighten-checking.patch
+```
+
+The review output contains the literal patch bytes, current definition and
+proposal hashes, target, stable May job, and the exact May action including
+its final newline. It never invokes May or changes the home. At most 16 patches
+and 64 KiB of aggregate proposal bytes are shown per catalogue invocation.
+
+Agent then parses and dry-runs it with Git, binds the physical home, current
+definition hash, target, proposal path, and proposal hash into one exact May
+request, and exits 75 without changing the definition while that request is
+parked. Review and decide the digest from a separate terminal, then retry the
+identical command:
 
 ```sh
 agent amend support-chief tighten-checking.patch  # exits 75; prints JSON
@@ -127,8 +141,8 @@ is scrubbed before Ply starts.
 ## Dependencies
 
 `run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. `learn` needs
-Hone; `history` needs Trail, and its `check` command also needs Ask. `amend`
-needs Git and May.
+Hone; `history` needs Trail, and its `check` command also needs Ask.
+`proposals` needs Git; `amend` needs Git and May.
 Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
 `AGENT_TRAIL`, `AGENT_ASK`, and `AGENT_MAY` are available for a pinned suite
 and offline tests. `check` only needs Brief when `skills/` contains a skill.
@@ -152,6 +166,8 @@ values, credentials, or programs from the worker.
 The implemented vertical slices scaffold, validate, inspect, run, cheaply
 tick, invoke direct specialists, explicitly learn from verified recovery,
 browse replay history without writing it, and apply one exact human-approved
-definition patch with rollback and evidence. Pinned-suite packaging remains a
+definition patch with rollback and evidence. Proposal bytes and approval
+actions are also inspectable through a bounded, read-only public command.
+Pinned-suite packaging remains a
 follow-on slice; Bench has a core interactive home view and exposes every
 Agent command through its headless boundary.
