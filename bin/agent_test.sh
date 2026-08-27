@@ -144,7 +144,7 @@ assert_not_contains() {
 }
 
 version_output=$($agent version)
-if [ "$version_output" = 'agent 0.1.0' ]; then
+if [ "$version_output" = 'agent 0.1.1' ]; then
   ok 'version follows the suite component contract'
 else
   not_ok 'version follows the suite component contract'
