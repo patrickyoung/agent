@@ -53,6 +53,17 @@ cat >"$fake_bin/ask" <<'EOF'
 exit 0
 EOF
 
+cat >"$fake_bin/may" <<'EOF'
+#!/bin/sh
+set -eu
+: "${AGENT_TEST_CAPTURE:?}"
+printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/may-argv"
+cat >"$AGENT_TEST_CAPTURE/may-action"
+printf '%s\n' '{"version":1,"job":"fixture","digest":"fixture","action":"bound","verdict":"spent"}'
+[ -z "${AGENT_TEST_MAY_MUTATE:-}" ] || printf '%s\n' '# changed after approval' >>"$AGENT_TEST_MAY_MUTATE"
+exit "${AGENT_TEST_MAY_EXIT:-0}"
+EOF
+
 cat >"$fake_bin/ply" <<'EOF'
 #!/bin/sh
 set -eu
@@ -60,7 +71,7 @@ set -eu
 printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/argv"
 printf '%s\n' "${BRIEF_PATH:-}" >"$AGENT_TEST_CAPTURE/brief-path"
 printf '%s\n' "${PLY_DIR:-}" >"$AGENT_TEST_CAPTURE/ply-dir"
-printf '%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
+printf '%s|%s|%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" "${AGENT_MAY-unset}" "${BENCH_MAY-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
 cat >"$AGENT_TEST_CAPTURE/stdin"
 
 previous=
@@ -80,7 +91,7 @@ printf '%s\n' 'fixture answer'
 exit "${AGENT_TEST_PLY_EXIT:-0}"
 EOF
 
-chmod 755 "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/ply" "$fake_bin/trail"
+chmod 755 "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/may" "$fake_bin/ply" "$fake_bin/trail"
 
 failures=0
 checks=0
@@ -152,6 +163,8 @@ assert_dir 'new creates mutable state root' "$home/state"
 assert_dir 'new creates file-shaped KV state' "$home/state/kv"
 assert_dir 'new creates run evidence root' "$home/.agent/runs"
 assert_dir 'new creates learning evidence root' "$home/.agent/learning"
+assert_dir 'new creates definition proposal root' "$home/work/proposals"
+assert_dir 'new creates amendment evidence root' "$home/.agent/amendments"
 
 if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
   ok 'fresh scaffold validates'
@@ -263,6 +276,8 @@ tick_stdout=$tmp/tick-stdout
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_PLY="$fake_bin/ply" \
 AGENT_CAGE="$fake_bin/cage" \
+AGENT_MAY="$fake_bin/may" \
+BENCH_MAY="$fake_bin/may" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" tick "$home" >"$tick_stdout" 2>/dev/null
 assert_contains 'changed wake starts Ply' "$tick_stdout" 'fixture answer'
@@ -429,6 +444,112 @@ else
   ok 'history refuses sessions outside home evidence'
 fi
 
+proposal=$home/work/proposals/add-evidence-rule.patch
+cat >"$proposal" <<'EOF'
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -6,3 +6,4 @@
+ - Keep current progress in state/plan.md; do not rewrite definition files.
+ - Put proposed definition changes under work/proposals/ for human review.
+ - Inspect state on demand instead of loading it wholesale.
++- Summarize the evidence that changed the plan before taking action.
+EOF
+
+set +e
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_MAY="$fake_bin/may" \
+AGENT_TEST_CAPTURE="$capture" \
+AGENT_TEST_MAY_EXIT=75 \
+"$agent" amend "$home" add-evidence-rule.patch >"$tmp/amend-parked" 2>/dev/null
+amend_parked_status=$?
+set -e
+if [ "$amend_parked_status" -eq 75 ]; then
+  ok 'amend parks one exact May request before writing definition'
+else
+  not_ok 'amend parks one exact May request before writing definition'
+fi
+assert_not_contains 'parked amendment leaves definition unchanged' "$home/AGENTS.md" 'Summarize the evidence that changed the plan'
+assert_contains 'amend binds the definition hash' "$capture/may-action" 'definition-sha256:'
+assert_contains 'amend binds the proposal hash' "$capture/may-action" 'proposal-sha256:'
+assert_contains 'amend uses a stable exact-action job' "$capture/may-argv" 'agent-amend-'
+
+cp "$proposal" "$tmp/proposal-before-race"
+set +e
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_MAY="$fake_bin/may" \
+AGENT_TEST_CAPTURE="$capture" \
+AGENT_TEST_MAY_MUTATE="$proposal" \
+"$agent" amend "$home" add-evidence-rule.patch >/dev/null 2>"$tmp/amend-stale-stderr"
+amend_stale_status=$?
+set -e
+if [ "$amend_stale_status" -eq 2 ]; then
+  ok 'amend refuses a grant after proposal bytes change'
+else
+  not_ok 'amend refuses a grant after proposal bytes change'
+fi
+assert_not_contains 'stale grant leaves definition unchanged' "$home/AGENTS.md" 'Summarize the evidence that changed the plan'
+cp "$tmp/proposal-before-race" "$proposal"
+
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_MAY="$fake_bin/may" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" amend "$home" add-evidence-rule.patch >"$tmp/amend-spent" 2>/dev/null
+assert_contains 'approved amendment applies one reviewed root definition patch' "$home/AGENTS.md" 'Summarize the evidence that changed the plan'
+set -- "$home"/.agent/amendments/*.txt
+if [ -f "$1" ]; then
+  ok 'approved amendment records controller evidence'
+else
+  not_ok 'approved amendment records controller evidence'
+fi
+assert_contains 'amendment receipt binds before and after definition' "$1" 'definition-before-sha256:'
+assert_contains 'amendment receipt retains the May result' "$1" 'may-result:'
+
+rollback=$home/work/proposals/empty-goal.patch
+cat >"$rollback" <<'EOF'
+--- a/GOAL.md
++++ b/GOAL.md
+@@ -1,12 +0,0 @@
+-# Outcome
+-
+-Replace this with the durable end state.
+-
+-## Acceptance evidence
+-
+-Explain what `bin/check` proves.
+-
+-## Constraints and stop conditions
+-
+-- Preserve anything that must not regress.
+-- Stop and report when human judgment or new authority is required.
+EOF
+set +e
+AGENT_BRIEF="$fake_bin/brief" AGENT_MAY="$fake_bin/may" AGENT_TEST_CAPTURE="$capture" \
+"$agent" amend "$home" empty-goal.patch >/dev/null 2>"$tmp/amend-rollback-stderr"
+rollback_status=$?
+set -e
+if [ "$rollback_status" -eq 2 ]; then
+  ok 'amend rejects an approved patch that breaks home validation'
+else
+  not_ok 'amend rejects an approved patch that breaks home validation'
+fi
+assert_contains 'failed amendment restores the exact definition file' "$home/GOAL.md" '# Outcome'
+assert_contains 'failed amendment reports rollback' "$tmp/amend-rollback-stderr" 'was rolled back'
+
+outside_patch=$home/work/proposals/outside.patch
+cat >"$outside_patch" <<'EOF'
+--- a/bin/check
++++ b/bin/check
+@@ -1,1 +1,1 @@
+-#!/bin/sh
++#!/bin/false
+EOF
+if AGENT_BRIEF="$fake_bin/brief" AGENT_MAY="$fake_bin/may" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" amend "$home" outside.patch >/dev/null 2>&1; then
+  not_ok 'amend refuses non-root-definition targets'
+else
+  ok 'amend refuses non-root-definition targets'
+fi
+
 if AGENT_BRIEF="$fake_bin/brief" AGENT_TRAIL="$fake_bin/trail" AGENT_TEST_CAPTURE="$capture" \
    AGENT_TEST_TRAIL_EXIT=1 "$agent" history "$home" >/dev/null 2>&1; then
   not_ok 'history preserves Trail negative status'
@@ -457,6 +578,8 @@ printf '%s' 'piped fixture bytes' | \
   AGENT_BRIEF="$fake_bin/brief" \
   AGENT_PLY="$fake_bin/ply" \
   AGENT_CAGE="$fake_bin/cage" \
+  AGENT_MAY="$fake_bin/may" \
+  BENCH_MAY="$fake_bin/may" \
   AGENT_TEST_CAPTURE="$capture" \
   "$agent" run -m fixture-model -effort high "$home" -- 'handle ticket 42' \
   >"$stdout" 2>"$stderr"
@@ -468,7 +591,7 @@ assert_contains 'piped input reaches Ply stdin' "$capture/stdin" 'piped fixture 
 assert_contains 'private context is delivered through a skill' "$capture/context" '## Operating instructions'
 assert_contains 'local skills are scoped through BRIEF_PATH' "$capture/brief-path" "$home/skills"
 assert_contains 'run evidence is scoped through PLY_DIR' "$capture/ply-dir" "$home/.agent/runs"
-assert_contains 'private compile inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset'
+assert_contains 'private controller inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset|unset|unset'
 assert_contains 'Ply works in the mutable work root' "$capture/argv" "$home/work"
 assert_contains 'model selection is forwarded' "$capture/argv" 'fixture-model'
 assert_contains 'effort selection is forwarded' "$capture/argv" 'high'

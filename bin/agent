@@ -34,6 +34,7 @@ agent — compile and run a directory-shaped digital worker
   agent learn -into SKILL [flags] HOME SESSION
                                    offer one verified recovery to Hone
   agent history HOME [COMMAND ...] browse this home's replay evidence
+  agent amend HOME PATCH          apply one reviewed definition patch via May
   agent version                    print the version
   agent help                       print this summary
 
@@ -60,8 +61,13 @@ history:
   agent history HOME lineage SESSION
   agent history HOME check
 
+amendment:
+  agent amend HOME PATCH
+                dry-run one root definition-file patch, bind its exact hashes
+                through May, then apply and revalidate only after approval
+
 env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE AGENT_TRAIL AGENT_ASK
-     override dependencies
+     AGENT_MAY override dependencies
 exit: 0 accepted · 1 negative verdict · 2 broken · composed filter statuses preserved
 EOF
 }
@@ -74,6 +80,7 @@ tool() {
 		AGENT_HONE) value=${AGENT_HONE:-} ;;
 		AGENT_TRAIL) value=${AGENT_TRAIL:-} ;;
 		AGENT_ASK) value=${AGENT_ASK:-} ;;
+		AGENT_MAY) value=${AGENT_MAY:-} ;;
 		*) die "internal unknown tool variable: $1" ;;
 	esac
 	fallback=$2
@@ -173,6 +180,10 @@ hash_stream() {
 	fi
 }
 
+hash_file() {
+	hash_stream <"$1"
+}
+
 check_hash() {
 	hash_stream <"$HOME_DIR/bin/check"
 }
@@ -234,6 +245,15 @@ check_home() {
 			say "$name is not writable by the controller: $HOME_DIR/$name"
 			rc=1
 		}
+	done
+	for name in work/proposals .agent/amendments; do
+		if [ -e "$HOME_DIR/$name" ] || [ -L "$HOME_DIR/$name" ]; then
+			safe_dir "$HOME_DIR/$name" "$name" || rc=1
+			[ -w "$HOME_DIR/$name" ] || {
+				say "$name is not writable by the controller: $HOME_DIR/$name"
+				rc=1
+			}
+		fi
 	done
 	if has_unsafe_hardlinks; then
 		say 'work/ or state/ contains a multiply-linked regular file; copy it to a fresh inode before running'
@@ -385,7 +405,7 @@ new_home() {
 	desc=$*
 	[ -n "$desc" ] || desc='Describe this agent'
 
-	mkdir -p "$dir/bin" "$dir/work" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning"
+	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/amendments"
 	cat >"$dir/AGENTS.md" <<EOF
 # Operating instructions
 
@@ -438,7 +458,7 @@ EOF
 exit 0
 EOF
 	chmod 700 "$dir/bin/check" "$dir/bin/wake"
-	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning"
+	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/amendments"
 	printf '%s/AGENTS.md\n' "$dir"
 	say "scaffolded $dir; edit GOAL.md and bin/check, then run agent check $dir"
 }
@@ -471,6 +491,7 @@ show_home() {
 	printf 'check: %s\n' "$HOME_DIR/bin/check"
 	printf 'evidence: %s\n' "$HOME_DIR/.agent/runs"
 	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
+	printf 'amendment-evidence: %s\n' "$HOME_DIR/.agent/amendments"
 	printf 'default-authority: full host tool catalogue; Cage writes work+state; network denied\n'
 	printf '\n# Definition files\n\n'
 	definition_files | while IFS= read -r name; do
@@ -632,7 +653,7 @@ run_home() {
 
 	# The compiled goal is now a regular stdin file. Do not leak caller input,
 	# piped-input paths, or wake evidence through Ply's inherited environment.
-	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE
+	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE AGENT_MAY BENCH_MAY
 
 	set +e
 	"$ply_bin" "$@" <"$goal_file"
@@ -811,6 +832,127 @@ history_home() {
 	return "$rc"
 }
 
+proposal_in_home() {
+	raw=$1
+	proposal_root=$HOME_DIR/work/proposals
+	safe_dir "$proposal_root" work/proposals || die "invalid proposal directory: $proposal_root"
+	case $raw in
+		*/*) candidate=$raw ;;
+		*) candidate=$proposal_root/$raw ;;
+	esac
+	[ ! -L "$candidate" ] || die "proposal may not be a symlink: $candidate"
+	parent=$(physical_dir "$(dirname "$candidate")") || die "proposal directory not found: $candidate"
+	PROPOSAL_FILE=$parent/$(basename "$candidate")
+	[ "$parent" = "$(physical_dir "$proposal_root")" ] || die "proposal is outside this home's work/proposals: $PROPOSAL_FILE"
+	safe_file "$PROPOSAL_FILE" proposal || die "invalid proposal: $PROPOSAL_FILE"
+	proposal_bytes=$(bytes "$PROPOSAL_FILE")
+	[ "$proposal_bytes" -le "$FILE_MAX" ] || die "proposal is $proposal_bytes bytes; the limit is $FILE_MAX"
+	export PROPOSAL_FILE
+}
+
+amend_home() {
+	[ "$#" -eq 2 ] || die 'amend needs HOME and PATCH'
+	open_home "$1"
+	if ! check_home; then
+		return 1
+	fi
+	proposal_in_home "$2"
+	command -v git >/dev/null 2>&1 || die 'amend needs git for strict patch parsing and application'
+
+	stats=$(cd "$HOME_DIR" && git apply --numstat "$PROPOSAL_FILE") || die 'proposal is not a parseable patch'
+	[ "$(printf '%s\n' "$stats" | sed '/^$/d' | wc -l | tr -d '[:space:]')" -eq 1 ] || die 'amend accepts exactly one definition file per proposal'
+	target=$(printf '%s\n' "$stats" | awk -F '\t' 'NF == 3 { print $3 }')
+	case $target in
+		AGENTS.md|GOAL.md|SOUL.md|PLAN.md|HEARTBEAT.md|MEMORY.md) ;;
+		*) die "amend target is not a supported root definition file: $target" ;;
+	esac
+	[ ! -L "$HOME_DIR/$target" ] || die "amend target may not be a symlink: $target"
+	safe_file "$HOME_DIR/$target" 'amend target' || die "invalid amend target: $target"
+	if find "$HOME_DIR/$target" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
+		die "amend target is multiply linked: $target"
+	fi
+	(cd "$HOME_DIR" && git apply --check "$PROPOSAL_FILE") || die 'proposal does not apply cleanly to the current definition'
+
+	receipt_dir=$HOME_DIR/.agent/amendments
+	if [ ! -e "$receipt_dir" ]; then
+		mkdir "$receipt_dir" || die "cannot create amendment evidence: $receipt_dir"
+		chmod 700 "$receipt_dir"
+	fi
+	safe_dir "$receipt_dir" .agent/amendments || die "invalid amendment evidence directory: $receipt_dir"
+	[ -r "$receipt_dir" ] && [ -w "$receipt_dir" ] && [ -x "$receipt_dir" ] ||
+		die "amendment evidence is not accessible and writable: $receipt_dir"
+
+	before_hash=$(definition_hash)
+	proposal_hash=$(hash_file "$PROPOSAL_FILE")
+	job=agent-amend-$before_hash-$proposal_hash
+	action=$(printf '%s\n' \
+		'agent-amend/v1' \
+		"home: $HOME_DIR" \
+		"definition-sha256: $before_hash" \
+		"target: $target" \
+		"proposal: $PROPOSAL_FILE" \
+		"proposal-sha256: $proposal_hash" \
+		'effect: apply this one root definition-file patch, then require agent check')
+	may_bin=$(tool AGENT_MAY may)
+	set +e
+	may_result=$(printf '%s\n' "$action" | "$may_bin" request "$job")
+	may_status=$?
+	set -e
+	[ -z "$may_result" ] || printf '%s\n' "$may_result"
+	[ "$may_status" -eq 0 ] || return "$may_status"
+
+	[ "$(definition_hash)" = "$before_hash" ] || die 'definition changed after approval was requested; refusing stale grant'
+	[ "$(hash_file "$PROPOSAL_FILE")" = "$proposal_hash" ] || die 'proposal changed after approval was requested; refusing stale grant'
+	(cd "$HOME_DIR" && git apply --check "$PROPOSAL_FILE") || die 'proposal no longer applies cleanly after approval'
+
+	tmp_parent=${TMPDIR:-/tmp}
+	backup_dir=$(mktemp -d "$tmp_parent/agent-amend.XXXXXX") || die 'cannot create amendment backup'
+	receipt_tmp=$(mktemp "$receipt_dir/.receipt.XXXXXX") || {
+		rm -rf "$backup_dir"
+		die 'cannot stage amendment receipt'
+	}
+	applied=0
+	committed=0
+	cleanup_amend() {
+		if [ "$applied" -eq 1 ] && [ "$committed" -eq 0 ]; then
+			cp -p "$backup_dir/$target" "$HOME_DIR/$target" 2>/dev/null || :
+		fi
+		rm -f "$receipt_tmp"
+		rm -rf "$backup_dir"
+	}
+	trap cleanup_amend EXIT
+	trap 'exit 129' HUP
+	trap 'exit 130' INT
+	trap 'exit 143' TERM
+	chmod 600 "$receipt_tmp"
+	cp -p "$HOME_DIR/$target" "$backup_dir/$target" || die 'cannot back up amendment target'
+	if ! (cd "$HOME_DIR" && git apply "$PROPOSAL_FILE"); then
+		die 'approved proposal could not be applied'
+	fi
+	applied=1
+	if ! check_home; then
+		cp -p "$backup_dir/$target" "$HOME_DIR/$target" || die 'amendment invalid and rollback failed'
+		applied=0
+		say 'approved amendment failed agent check and was rolled back'
+		return 2
+	fi
+	after_hash=$(definition_hash)
+	{
+		printf '%s\n' 'agent-amend/v1'
+		printf 'home: %s\n' "$HOME_DIR"
+		printf 'target: %s\n' "$target"
+		printf 'proposal: %s\n' "$PROPOSAL_FILE"
+		printf 'proposal-sha256: %s\n' "$proposal_hash"
+		printf 'definition-before-sha256: %s\n' "$before_hash"
+		printf 'definition-after-sha256: %s\n' "$after_hash"
+		printf 'may-result: %s\n' "$may_result"
+	} >"$receipt_tmp"
+	receipt=$receipt_dir/$proposal_hash.txt
+	mv "$receipt_tmp" "$receipt" || die 'cannot publish amendment receipt'
+	committed=1
+	say "amended $target · before=$before_hash · after=$after_hash · evidence=$receipt"
+}
+
 cmd=${1:-help}
 case $cmd in
 	help|-h|--help)
@@ -852,6 +994,10 @@ case $cmd in
 	history)
 		shift
 		history_home "$@"
+		;;
+	amend)
+		shift
+		amend_home "$@"
 		;;
 	*)
 		die "unknown command: $cmd (run agent help)"

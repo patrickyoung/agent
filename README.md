@@ -28,10 +28,12 @@ support-chief/
   bin/check       executable completion verdict (required)
   bin/wake        cheap tick probe: 0 quiet, 1 wake, other broken
   work/           mutable deliverables and working directory
+    proposals/    model-authored unified diffs awaiting human review
   state/          mutable durable state, not injected into context
     kv/           file-shaped key/value state for simple durable facts
   .agent/runs/    replayable Ask sessions and Ply verifier receipts
   .agent/learning/ Hone wording sessions for explicitly admitted lessons
+  .agent/amendments/ controller receipts for approved definition patches
 ```
 
 `agent run` defaults to full shell access inside Cage, with writes limited to
@@ -62,6 +64,7 @@ agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
 agent specialist PARENT NAME [run flags] [-- input ...]
 agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-q] HOME SESSION
 agent history HOME [ls|find|show|window|lineage|check ...]
+agent amend HOME PATCH
 agent help
 agent version
 ```
@@ -98,13 +101,37 @@ unchanged. `ls` is the default; `find QUERY`, `show SESSION`, bounded `window`,
 commands accept only regular non-symlinked evidence files beneath that home;
 `check` delegates replay integrity to Ask through Trail.
 
+`agent amend` is the reviewed definition-change path. `PATCH` must be a
+regular, non-symlinked direct child of `HOME/work/proposals/` and a conventional
+unified diff that changes exactly one existing root definition file. Agent
+parses and dry-runs it with Git, binds the physical home, current definition
+hash, target, proposal path, and proposal hash into one exact May request, and
+exits 75 without changing the definition while that request is parked. Review
+and decide the digest from a separate terminal, then retry the identical
+command:
+
+```sh
+agent amend support-chief tighten-checking.patch  # exits 75; prints JSON
+may pending
+may decide DIGEST
+agent amend support-chief tighten-checking.patch  # spends grant and applies
+```
+
+After approval, Agent rechecks both hashes and patch applicability, stages a
+receipt, applies the patch, and reruns the complete home check. A rejected
+home is restored byte-for-byte and exits 2. A successful change records its
+before/after hashes and May result under `.agent/amendments/`. The model can
+propose words, but only a human can authorize these exact bytes; the May path
+is scrubbed before Ply starts.
+
 ## Dependencies
 
 `run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. `learn` needs
-Hone; `history` needs Trail, and its `check` command also needs Ask.
+Hone; `history` needs Trail, and its `check` command also needs Ask. `amend`
+needs Git and May.
 Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
-`AGENT_TRAIL`, and `AGENT_ASK` are available for a pinned suite and offline
-tests. `check` only needs Brief when `skills/` contains a skill.
+`AGENT_TRAIL`, `AGENT_ASK`, and `AGENT_MAY` are available for a pinned suite
+and offline tests. `check` only needs Brief when `skills/` contains a skill.
 
 `just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
 beside the other standalone Bench filters.
@@ -123,7 +150,8 @@ values, credentials, or programs from the worker.
 ## Status
 
 The implemented vertical slices scaffold, validate, inspect, run, cheaply
-tick, invoke direct specialists, explicitly learn from verified recovery, and
-browse replay history without writing it. Pinned-suite packaging and the
-reviewed amendment/approval flows remain follow-on slices; Bench now has a
-core interactive home view over the public executable.
+tick, invoke direct specialists, explicitly learn from verified recovery,
+browse replay history without writing it, and apply one exact human-approved
+definition patch with rollback and evidence. Pinned-suite packaging remains a
+follow-on slice; Bench has a core interactive home view and exposes every
+Agent command through its headless boundary.

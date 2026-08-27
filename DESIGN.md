@@ -38,6 +38,9 @@ The complete research and product rationale is in
 - [x] A frozen representative-home corpus measures deterministic validation,
       compiled bytes, zero-model gates, recursive homes, clean re-entry, and
       Ask-owned replay without network access.
+- [x] Definition changes use one reviewed unified diff, an exact one-shot May
+      grant, stale-input rechecks, complete home validation, rollback, and a
+      controller-owned receipt.
 
 ## Not doing
 
@@ -48,7 +51,8 @@ The complete research and product rationale is in
 - No completion inferred from model prose. `bin/check` is required.
 - No authority read from Markdown. The caller chooses confinement and network.
 - No writable definition during a confined run. Proposed definition changes
-  go under `work/` for a person to apply later.
+  go under `work/proposals/`; only the controller's explicit `amend` command
+  can apply one after exact human approval.
 
 ## The split
 
@@ -62,6 +66,8 @@ The complete research and product rationale is in
 | confine model-authored actions | cage | it owns the OS boundary |
 | admit learned procedures | hone | it owns verified learning |
 | browse prior runs | trail | it owns read-only Ask archive inspection |
+| authorize exact definition bytes | may | it binds a human decision to one proposal and current definition |
+| parse, apply, validate, and receipt a patch | this script + git | bounded controller mechanics with rollback |
 
 ## Data
 
@@ -70,9 +76,11 @@ The complete research and product rationale is in
       skills/ agents/ tools/ bin/check bin/wake
     mutable:
       work/ state/
+      work/proposals/   proposed one-file unified diffs
     evidence:
       .agent/runs/       Ask sessions and Ply verifier receipts
       .agent/learning/   Hone wording sessions
+      .agent/amendments/ accepted definition-change receipts
     derived:
       private temporary Agent Skill used only to load bounded home context
 

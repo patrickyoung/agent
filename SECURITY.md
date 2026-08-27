@@ -36,6 +36,19 @@ wrapper scopes archive operations and session paths to the selected home's
 `.agent/runs/`, refuses symlinked or outside session files, and delegates
 replay checking to Ask. Session output is sensitive and is not redacted.
 
+`agent amend` also runs outside Cage because it is the controller operation
+that can change definition. It accepts only one existing root definition file
+per regular, non-symlinked proposal beneath `work/proposals/`, refuses a
+multiply-linked target, and dry-runs with Git before asking. May binds a human
+answer to the physical home, current definition hash, target, proposal path,
+proposal hash, and stated effect. A grant is single-use. Agent rechecks those
+inputs after spending it, validates the whole home after applying, rolls the
+target back on any validation or evidence-publication failure, and records a
+receipt outside the model-writable roots. May is not passed into Ply's
+environment, and no Markdown instruction can approve a request. Review the
+actual diff and exact May action before deciding; approval proves consent to
+those bytes, not that they are wise.
+
 ## What it does not confine
 
 Cage is not a confidentiality, identity, CPU, memory, process-count, syscall,
