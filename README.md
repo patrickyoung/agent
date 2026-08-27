@@ -97,7 +97,8 @@ overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, and `AGENT_HONE` are
 available for a pinned suite and offline tests. `check` only needs Brief when
 `skills/` contains a skill.
 
-`just install` links `agent` and its Cage action wrapper into `~/bin`.
+`just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
+beside the other standalone Bench filters.
 
 See `SECURITY.md` before running downloaded or adversarial homes. Cage limits
 writes and networking; it does not hide host-readable files, environment
