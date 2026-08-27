@@ -588,6 +588,7 @@ run_home() {
 
 	ply_bin=$(tool AGENT_PLY ply)
 	brief_bin=$(tool AGENT_BRIEF brief)
+	ask_bin=$(tool AGENT_ASK ask)
 	action_shell=
 	if [ "$use_cage" -eq 1 ]; then
 		cage_bin=$(tool AGENT_CAGE cage)
@@ -636,6 +637,7 @@ run_home() {
 		agent_bin=$(resolve_program "$0") || die "cannot resolve agent executable: $0"
 	fi
 	export AGENT_BIN=$agent_bin
+	export ASK=$ask_bin
 	export BRIEF=$brief_bin
 	export BRIEF_PATH=$HOME_DIR/skills
 	export PLY_DIR=$HOME_DIR/.agent/runs

@@ -162,10 +162,12 @@ is scrubbed before Ply starts.
 
 ## Dependencies
 
-`run` needs `ply`, `brief`, and (by default) `cage` on `PATH`. Learning needs
-Hone and Brief; evidence review, preparation, and admission also pin Ask for
-replay or wording, while `learn -show` calls only Hone. `history` needs Trail,
-and its `check` command also needs Ask.
+`run` needs `ply`, `brief`, `ask`, and (by default) `cage` on `PATH`. Agent
+resolves Ask itself and pins it into Ply, so a relocatable suite does not
+depend on its `bin` directory remaining on `PATH`. Learning needs Hone and
+Brief; evidence review, preparation, and admission also pin Ask for replay or
+wording, while `learn -show` calls only Hone. `history` needs Trail, and its
+`check` command also needs Ask.
 `proposals` needs Git; `amend` needs Git and May.
 Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
 `AGENT_TRAIL`, `AGENT_ASK`, and `AGENT_MAY` are available for a pinned suite
