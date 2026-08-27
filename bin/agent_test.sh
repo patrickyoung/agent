@@ -72,6 +72,7 @@ set -eu
 printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/argv"
 printf '%s\n' "${BRIEF_PATH:-}" >"$AGENT_TEST_CAPTURE/brief-path"
 printf '%s\n' "${PLY_DIR:-}" >"$AGENT_TEST_CAPTURE/ply-dir"
+printf '%s\n' "${ASK:-}" >"$AGENT_TEST_CAPTURE/ply-ask"
 printf '%s|%s|%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" "${AGENT_MAY-unset}" "${BENCH_MAY-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
 cat >"$AGENT_TEST_CAPTURE/stdin"
 
@@ -143,7 +144,7 @@ assert_not_contains() {
 }
 
 version_output=$($agent version)
-if [ "$version_output" = 'agent 0.1.0' ]; then
+if [ "$version_output" = 'agent 0.1.1' ]; then
   ok 'version follows the suite component contract'
 else
   not_ok 'version follows the suite component contract'
@@ -278,6 +279,7 @@ tick_stdout=$tmp/tick-stdout
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_PLY="$fake_bin/ply" \
 AGENT_CAGE="$fake_bin/cage" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_MAY="$fake_bin/may" \
 BENCH_MAY="$fake_bin/may" \
 AGENT_TEST_CAPTURE="$capture" \
@@ -335,6 +337,7 @@ set +e
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_PLY="$fake_bin/ply" \
 AGENT_CAGE="$fake_bin/cage" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" specialist "$home" researcher -m specialist-model -- 'investigate one bounded claim' \
 >"$specialist_stdout" 2>"$specialist_stderr"
@@ -665,6 +668,7 @@ printf '%s' 'piped fixture bytes' | \
   AGENT_BRIEF="$fake_bin/brief" \
   AGENT_PLY="$fake_bin/ply" \
   AGENT_CAGE="$fake_bin/cage" \
+  AGENT_ASK="$fake_bin/ask" \
   AGENT_MAY="$fake_bin/may" \
   BENCH_MAY="$fake_bin/may" \
   AGENT_TEST_CAPTURE="$capture" \
@@ -678,6 +682,7 @@ assert_contains 'piped input reaches Ply stdin' "$capture/stdin" 'piped fixture 
 assert_contains 'private context is delivered through a skill' "$capture/context" '## Operating instructions'
 assert_contains 'local skills are scoped through BRIEF_PATH' "$capture/brief-path" "$home/skills"
 assert_contains 'run evidence is scoped through PLY_DIR' "$capture/ply-dir" "$home/.agent/runs"
+assert_contains 'run pins Ask for Ply model calls' "$capture/ply-ask" "$fake_bin/ask"
 assert_contains 'private controller inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset|unset|unset'
 assert_contains 'Ply works in the mutable work root' "$capture/argv" "$home/work"
 assert_contains 'model selection is forwarded' "$capture/argv" 'fixture-model'
@@ -691,6 +696,7 @@ ln -s "$agent" "$link_bin/agent"
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_PLY="$fake_bin/ply" \
 AGENT_CAGE="$fake_bin/cage" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_TEST_CAPTURE="$capture" \
 "$link_bin/agent" run "$home" >/dev/null 2>/dev/null
 assert_contains 'installed symlink resolves private action wrapper' "$capture/argv" "$here/bin/agent-action-shell"
@@ -698,6 +704,7 @@ assert_contains 'installed symlink resolves private action wrapper' "$capture/ar
 if AGENT_BRIEF="$fake_bin/brief" \
    AGENT_PLY="$fake_bin/ply" \
    AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
    AGENT_TEST_CAPTURE="$capture" \
    AGENT_TEST_PLY_EXIT=2 \
    "$agent" run "$home" >/dev/null 2>&1; then
@@ -714,6 +721,7 @@ fi
 no_cage_stderr=$tmp/no-cage-stderr
 AGENT_BRIEF="$fake_bin/brief" \
 AGENT_PLY="$fake_bin/ply" \
+AGENT_ASK="$fake_bin/ask" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" run -no-cage "$home" >/dev/null 2>"$no_cage_stderr"
 assert_contains 'no-cage mode is explicit' "$no_cage_stderr" 'Cage is disabled'
@@ -721,6 +729,7 @@ assert_not_contains 'no-cage omits action shell' "$capture/argv" 'agent-action-s
 
 if AGENT_BRIEF="$fake_bin/brief" \
    AGENT_PLY="$fake_bin/ply" \
+   AGENT_ASK="$fake_bin/ask" \
    AGENT_TEST_CAPTURE="$capture" \
    "$agent" run -no-cage -net "$home" >/dev/null 2>&1; then
   not_ok 'network flag requires confinement'
