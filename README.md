@@ -95,6 +95,13 @@ was learned. `-N` previews without writing, and `.agent/learning/` keeps the
 model calls that word accepted lessons. There is no automatic `MEMORY.md`
 rewrite.
 
+Use `-why` to inspect the replay-verified goal, passing check, and failed-then-
+successful evidence without calling a model or changing a skill. `-N` goes
+further and asks a model to word possible lessons without writing them, but it
+is not an exact preview token: a later ordinary `learn` call generates wording
+again. Controllers must not present `-N` followed by `learn` as admission of
+the same reviewed bytes.
+
 `agent history` is the read-only evidence browser. It composes Trail over the
 home's `.agent/runs/` archive and returns Trail's JSONL and exit status
 unchanged. `ls` is the default; `find QUERY`, `show SESSION`, bounded `window`,

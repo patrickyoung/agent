@@ -372,6 +372,12 @@ assert_contains 'learn scopes writes to home skills' "$capture/hone-brief-path" 
 assert_contains 'learn stores wording evidence under controller state' "$capture/hone-dir" "$home/.agent/learning"
 assert_contains 'learn forwards dry-run mode' "$capture/hone-argv" '-N'
 
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_HONE="$fake_bin/hone" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" learn -into local-skill -why "$home" recovery >/dev/null 2>/dev/null
+assert_contains 'learn forwards model-free evidence review' "$capture/hone-argv" '-why'
+
 if AGENT_BRIEF="$fake_bin/brief" \
    AGENT_HONE="$fake_bin/hone" \
    AGENT_TEST_CAPTURE="$capture" \

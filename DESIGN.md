@@ -32,6 +32,9 @@ The complete research and product rationale is in
 - [x] Nested homes are exposed as bounded, separately replayable specialists.
 - [x] Verified recoveries can be offered explicitly to Hone without creating
       an automatic memory path.
+- [x] `learn -why` exposes replay-verified recovery evidence without a model
+      call or skill write; generated dry-run wording is not misrepresented as
+      an exact later admission.
 - [x] Prior run evidence can be listed, searched, shown, windowed, lineage-
       inspected, and replay-checked through Trail without another session
       parser or writer.
