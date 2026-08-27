@@ -35,6 +35,9 @@ The complete research and product rationale is in
 - [x] Prior run evidence can be listed, searched, shown, windowed, lineage-
       inspected, and replay-checked through Trail without another session
       parser or writer.
+- [x] A frozen representative-home corpus measures deterministic validation,
+      compiled bytes, zero-model gates, recursive homes, clean re-entry, and
+      Ask-owned replay without network access.
 
 ## Not doing
 
@@ -81,6 +84,7 @@ delete the evidence.
 
 ```sh
 sh -n bin/agent bin/agent-action-shell && sh bin/agent_test.sh
+sh eval/run.sh  # integration corpus; requires the installed public suite
 ```
 
 ## Layout

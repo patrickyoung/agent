@@ -2,6 +2,10 @@ check:
     sh -n bin/agent bin/agent-action-shell
     sh bin/agent_test.sh
 
+eval:
+    sh -n eval/run.sh
+    sh eval/run.sh
+
 install:
     #!/usr/bin/env bash
     set -euo pipefail

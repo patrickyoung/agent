@@ -109,6 +109,13 @@ tests. `check` only needs Brief when `skills/` contains a skill.
 `just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
 beside the other standalone Bench filters.
 
+`just eval` runs the frozen representative-home corpus in `eval/corpus/`.
+It proves already-complete re-entry makes no model call, quiet heartbeats stop
+before resolving Ply, broken wake protocols return 2, nested homes validate
+recursively, and a tiny real Ask archive replay-checks through Trail. The TSV
+report also exposes definition and compiled-view byte counts without turning
+them into a synthetic quality score.
+
 See `SECURITY.md` before running downloaded or adversarial homes. Cage limits
 writes and networking; it does not hide host-readable files, environment
 values, credentials, or programs from the worker.
@@ -118,4 +125,5 @@ values, credentials, or programs from the worker.
 The implemented vertical slices scaffold, validate, inspect, run, cheaply
 tick, invoke direct specialists, explicitly learn from verified recovery, and
 browse replay history without writing it. Pinned-suite packaging and the
-interactive Bench UI remain follow-on slices.
+reviewed amendment/approval flows remain follow-on slices; Bench now has a
+core interactive home view over the public executable.
