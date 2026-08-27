@@ -1,0 +1,740 @@
+#!/bin/sh
+# Compile an agent home into Brief + Ply + Cage. This program has no model,
+# loop, skill parser, session format, or sandbox of its own.
+
+set -eu
+
+ME=agent
+VERSION=0.1.0
+CONTEXT_MAX=65536
+FILE_MAX=32768
+
+say() {
+	printf '%s: %s\n' "$ME" "$*" >&2
+}
+
+die() {
+	say "$*"
+	exit 2
+}
+
+usage() {
+	cat <<'EOF'
+agent — compile and run a directory-shaped digital worker
+
+  agent new DIR [description ...]  scaffold an agent home
+  agent check [DIR]                validate it without a model
+  agent show [DIR]                 print exact composition and authority
+  agent run [flags] [DIR] [-- input ...]
+                                   pursue GOAL.md until bin/check accepts
+  agent tick [flags] [DIR] [-- input ...]
+                                   run bin/wake; spend a model call only on work
+  agent specialist PARENT NAME [run flags] [-- input ...]
+                                   run one direct child with separate evidence
+  agent learn -into SKILL [flags] HOME SESSION
+                                   offer one verified recovery to Hone
+  agent version                    print the version
+  agent help                       print this summary
+
+run flags:
+  -net          allow model-authored actions to use the network inside Cage
+  -no-cage      use Ply's ordinary host action boundary
+  -m MODEL      pass the provider/model literally to Ply
+  -effort NAME  pass reasoning effort literally to Ply
+  -q            suppress Ply's typescript
+
+specialist:
+  agent specialist PARENT NAME [run flags] [-- input ...]
+                run one validated direct child home in the foreground
+
+learning:
+  agent learn -into SKILL [flags] HOME SESSION
+  flags: -m MODEL -n COUNT -N -why -q
+
+env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE override dependencies
+exit: 0 accepted · 1 invalid home · 2 broken · Ply/May/Cage statuses preserved
+EOF
+}
+
+tool() {
+	case $1 in
+		AGENT_PLY) value=${AGENT_PLY:-} ;;
+		AGENT_BRIEF) value=${AGENT_BRIEF:-} ;;
+		AGENT_CAGE) value=${AGENT_CAGE:-} ;;
+		AGENT_HONE) value=${AGENT_HONE:-} ;;
+		*) die "internal unknown tool variable: $1" ;;
+	esac
+	fallback=$2
+	if [ -n "$value" ]; then
+		command -v "$value" >/dev/null 2>&1 || die "$1 executable not found: $value"
+		command -v "$value"
+		return
+	fi
+	command -v "$fallback" >/dev/null 2>&1 || die "$fallback is required"
+	command -v "$fallback"
+}
+
+physical_dir() {
+	[ -d "$1" ] || return 1
+	(
+		cd -P "$1" 2>/dev/null || exit 1
+		pwd -P
+	)
+}
+
+bytes() {
+	wc -c <"$1" | tr -d '[:space:]'
+}
+
+nonempty_markdown() {
+	# Blank lines and one-line Markdown comments do not make an optional file
+	# worth injecting. This is a loading choice, never Markdown interpretation.
+	sed '/^[[:space:]]*$/d; /^[[:space:]]*<!--[[:space:][:print:]]*-->[[:space:]]*$/d' "$1" | grep -q .
+}
+
+safe_file() {
+	path=$1
+	label=$2
+	[ ! -L "$path" ] || { say "$label may not be a symlink: $path"; return 1; }
+	[ -f "$path" ] || { say "$label is not a regular file: $path"; return 1; }
+	[ -r "$path" ] || { say "$label is not readable: $path"; return 1; }
+	return 0
+}
+
+safe_dir() {
+	path=$1
+	label=$2
+	[ ! -L "$path" ] || { say "$label may not be a symlink: $path"; return 1; }
+	[ -d "$path" ] || { say "$label is not a directory: $path"; return 1; }
+	return 0
+}
+
+context_files() {
+	for name in AGENTS.md SOUL.md MEMORY.md; do
+		path=$HOME_DIR/$name
+		if [ -f "$path" ] && nonempty_markdown "$path"; then
+			printf '%s\n' "$name"
+		fi
+	done
+}
+
+definition_files() {
+	for name in AGENTS.md GOAL.md SOUL.md PLAN.md HEARTBEAT.md MEMORY.md; do
+		[ -f "$HOME_DIR/$name" ] && printf '%s\n' "$name"
+	done
+}
+
+hash_stream() {
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum | awk '{print $1}'
+	elif command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 | awk '{print $1}'
+	elif command -v openssl >/dev/null 2>&1; then
+		openssl dgst -sha256 | awk '{print $NF}'
+	else
+		die 'show needs sha256sum, shasum, or openssl'
+	fi
+}
+
+check_hash() {
+	hash_stream <"$HOME_DIR/bin/check"
+}
+
+wake_hash() {
+	hash_stream <"$HOME_DIR/bin/wake"
+}
+
+definition_hash() {
+	definition_files | while IFS= read -r name; do
+		printf '%s\000' "$name"
+		cat "$HOME_DIR/$name"
+		printf '\000'
+	done | hash_stream
+}
+
+has_skills() {
+	find "$HOME_DIR/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f -print -quit 2>/dev/null | grep -q .
+}
+
+has_unsafe_hardlinks() {
+	# Cage confines path writes, not aliases to an inode that already has a
+	# name elsewhere. Be deliberately conservative: even multiple names wholly
+	# inside these roots are refused rather than reconstructing inode topology.
+	find "$HOME_DIR/work" "$HOME_DIR/state" -type f -links +1 -print -quit 2>/dev/null | grep -q .
+}
+
+check_home() {
+	rc=0
+
+	safe_file "$HOME_DIR/AGENTS.md" AGENTS.md || rc=1
+	safe_file "$HOME_DIR/GOAL.md" GOAL.md || rc=1
+	for name in SOUL.md PLAN.md HEARTBEAT.md MEMORY.md; do
+		[ ! -e "$HOME_DIR/$name" ] || safe_file "$HOME_DIR/$name" "$name" || rc=1
+	done
+	for name in work state state/kv skills agents tools .agent .agent/runs .agent/learning; do
+		safe_dir "$HOME_DIR/$name" "$name" || rc=1
+	done
+	safe_file "$HOME_DIR/bin/check" bin/check || rc=1
+	[ -x "$HOME_DIR/bin/check" ] || { say "bin/check is not executable: $HOME_DIR/bin/check"; rc=1; }
+	if [ -e "$HOME_DIR/bin/wake" ]; then
+		safe_file "$HOME_DIR/bin/wake" bin/wake || rc=1
+		[ -x "$HOME_DIR/bin/wake" ] || { say "bin/wake is not executable: $HOME_DIR/bin/wake"; rc=1; }
+	elif [ -f "$HOME_DIR/HEARTBEAT.md" ] && nonempty_markdown "$HOME_DIR/HEARTBEAT.md"; then
+		say "nonempty HEARTBEAT.md requires executable bin/wake: $HOME_DIR/bin/wake"
+		rc=1
+	fi
+
+	[ "$rc" -eq 0 ] || return 1
+
+	for name in work state state/kv skills agents tools .agent .agent/runs .agent/learning; do
+		[ -r "$HOME_DIR/$name" ] && [ -x "$HOME_DIR/$name" ] || {
+			say "$name is not readable/searchable: $HOME_DIR/$name"
+			rc=1
+		}
+	done
+	for name in work state state/kv .agent/runs .agent/learning; do
+		[ -w "$HOME_DIR/$name" ] || {
+			say "$name is not writable by the controller: $HOME_DIR/$name"
+			rc=1
+		}
+	done
+	if has_unsafe_hardlinks; then
+		say 'work/ or state/ contains a multiply-linked regular file; copy it to a fresh inode before running'
+		rc=1
+	fi
+
+	if ! nonempty_markdown "$HOME_DIR/AGENTS.md"; then
+		say 'AGENTS.md is empty'
+		rc=1
+	fi
+	if ! nonempty_markdown "$HOME_DIR/GOAL.md"; then
+		say 'GOAL.md is empty'
+		rc=1
+	fi
+
+	total=0
+	definition_files | while IFS= read -r name; do
+		n=$(bytes "$HOME_DIR/$name")
+		if [ "$n" -gt "$FILE_MAX" ]; then
+			say "$name is $n bytes; the per-file limit is $FILE_MAX"
+			exit 1
+		fi
+		total=$((total + n))
+		if [ "$total" -gt "$CONTEXT_MAX" ]; then
+			say "definition files total $total bytes; the limit is $CONTEXT_MAX"
+			exit 1
+		fi
+	done || rc=1
+
+	if has_skills; then
+		brief_bin=$(tool AGENT_BRIEF brief)
+		if ! "$brief_bin" lint -strict "$HOME_DIR/skills"; then
+			rc=1
+		fi
+	fi
+
+	set -- "$HOME_DIR"/skills/*
+	if [ -e "$1" ] || [ -L "$1" ]; then
+		for skill_entry do
+			if [ -L "$skill_entry" ]; then
+				say "skill directory may not be a symlink: $skill_entry"
+				rc=1
+			elif [ ! -d "$skill_entry" ]; then
+				say "skills/ entries must be skill directories: $skill_entry"
+				rc=1
+			fi
+		done
+	fi
+
+	set -- "$HOME_DIR"/agents/*
+	if [ -e "$1" ] || [ -L "$1" ]; then
+		for child do
+			if [ -L "$child" ]; then
+				say "specialist home may not be a symlink: $child"
+				rc=1
+			elif [ ! -d "$child" ]; then
+				say "agents/ entries must be nested agent homes: $child"
+				rc=1
+			elif ! (
+				HOME_DIR=$(physical_dir "$child") || exit 1
+				export HOME_DIR
+				check_home
+			); then
+				rc=1
+			fi
+		done
+	fi
+
+	[ "$rc" -eq 0 ] || return 1
+	say "$HOME_DIR is a valid agent home"
+	return 0
+}
+
+write_context() {
+	printf '# Agent home context\n\n'
+	printf 'This context was compiled from `%s`. Definition files are read-only during a confined run. Markdown shapes behavior but grants no authority.\n' "$HOME_DIR"
+	context_files | while IFS= read -r name; do
+		case $name in
+			AGENTS.md) heading='Operating instructions (AGENTS.md)' ;;
+			SOUL.md) heading='Character (SOUL.md)' ;;
+			MEMORY.md) heading='Curated memory (MEMORY.md)' ;;
+		esac
+		printf '\n## %s\n\n' "$heading"
+		cat "$HOME_DIR/$name"
+		printf '\n'
+	done
+
+	printf '\n## Runtime paths\n\n'
+	printf -- '- work: `%s`\n' "$HOME_DIR/work"
+	printf -- '- durable state: `%s`\n' "$HOME_DIR/state"
+	printf -- '- run evidence: `%s` (controller-owned)\n' "$HOME_DIR/.agent/runs"
+	printf -- '- learning evidence: `%s` (controller-owned)\n' "$HOME_DIR/.agent/learning"
+	printf -- '- definition proposals: write patches under `%s`\n' "$HOME_DIR/work/proposals"
+
+	set -- "$HOME_DIR"/agents/*
+	if [ -d "$1" ]; then
+		printf '\n## Available specialist homes\n\n'
+		for child do
+			[ -d "$child" ] && [ ! -L "$child" ] || continue
+			printf -- '- `%s`\n' "$child"
+		done
+		printf '\nSpecialists are separate agent runs. They do not inherit this conversation, loaded skills, check, or broader authority. Inside a confined action, report the exact specialist path and bounded task for an external controller; do not silently widen network or evidence writes to launch it.\n'
+	fi
+}
+
+write_goal() {
+	if [ "${RUN_KIND:-goal}" = tick ]; then
+		printf '# Heartbeat goal\n\n'
+		cat "$HOME_DIR/HEARTBEAT.md"
+		if [ -n "${RUN_WAKE_OUTPUT:-}" ]; then
+			printf '\n\n# Wake evidence\n\n%s\n' "$RUN_WAKE_OUTPUT"
+		fi
+	else
+		printf '# Standing goal\n\n'
+		cat "$HOME_DIR/GOAL.md"
+		if [ -f "$HOME_DIR/PLAN.md" ] && nonempty_markdown "$HOME_DIR/PLAN.md"; then
+			printf '\n\n# Standing plan\n\n'
+			cat "$HOME_DIR/PLAN.md"
+		fi
+	fi
+	if [ -n "${RUN_INPUT:-}" ]; then
+		printf '\n\n# Invocation context\n\n%s\n' "$RUN_INPUT"
+	fi
+	if [ -n "${RUN_STDIN_FILE:-}" ] && [ -s "$RUN_STDIN_FILE" ]; then
+		printf '\n\n# Piped input\n\n'
+		cat "$RUN_STDIN_FILE"
+		printf '\n'
+	fi
+}
+
+compiled_hash() {
+	{
+		write_context
+		printf '\n'
+		write_goal
+	} | hash_stream
+}
+
+new_home() {
+	dir=${1:-}
+	[ -n "$dir" ] || die 'new needs DIR'
+	shift
+	if [ -e "$dir" ]; then
+		[ -d "$dir" ] || die "not a directory: $dir"
+		[ -z "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit)" ] || die "directory is not empty: $dir"
+	else
+		mkdir -p "$dir" || die "cannot create $dir"
+	fi
+	desc=$*
+	[ -n "$desc" ] || desc='Describe this agent'
+
+	mkdir -p "$dir/bin" "$dir/work" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning"
+	cat >"$dir/AGENTS.md" <<EOF
+# Operating instructions
+
+$desc.
+
+- Work toward the standing goal and respect its constraints.
+- Keep current progress in state/plan.md; do not rewrite definition files.
+- Put proposed definition changes under work/proposals/ for human review.
+- Inspect state on demand instead of loading it wholesale.
+EOF
+	cat >"$dir/GOAL.md" <<'EOF'
+# Outcome
+
+Replace this with the durable end state.
+
+## Acceptance evidence
+
+Explain what `bin/check` proves.
+
+## Constraints and stop conditions
+
+- Preserve anything that must not regress.
+- Stop and report when human judgment or new authority is required.
+EOF
+	cat >"$dir/SOUL.md" <<'EOF'
+# Character
+
+Be calm, direct, curious, and evidence-led.
+EOF
+	cat >"$dir/PLAN.md" <<'EOF'
+# Standing strategy
+
+Start with the cheapest read-only observation that can change the plan.
+EOF
+	cat >"$dir/MEMORY.md" <<'EOF'
+# Curated facts
+
+Keep this small and human-reviewed. Verified procedures belong in skills/.
+EOF
+	: >"$dir/HEARTBEAT.md"
+	: >"$dir/state/plan.md"
+	cat >"$dir/bin/check" <<'EOF'
+#!/bin/sh
+# Replace with the executable definition of done. Exit 0 accepts, 1 rejects.
+exit 1
+EOF
+	cat >"$dir/bin/wake" <<'EOF'
+#!/bin/sh
+# Replace when HEARTBEAT.md is used. Exit 0 is quiet, 1 wakes, other is broken.
+exit 0
+EOF
+	chmod 700 "$dir/bin/check" "$dir/bin/wake"
+	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning"
+	printf '%s/AGENTS.md\n' "$dir"
+	say "scaffolded $dir; edit GOAL.md and bin/check, then run agent check $dir"
+}
+
+open_home() {
+	raw=${1:-.}
+	HOME_DIR=$(physical_dir "$raw") || die "not an agent home directory: $raw"
+	export HOME_DIR
+}
+
+show_home() {
+	RUN_KIND=goal
+	RUN_WAKE_OUTPUT=
+	export RUN_KIND RUN_WAKE_OUTPUT
+	if ! check_home >/dev/null; then
+		return 1
+	fi
+	goal_compiled_hash=$(compiled_hash)
+	printf 'agent-home: %s\n' "$HOME_DIR"
+	printf 'definition-sha256: %s\n' "$(definition_hash)"
+	printf 'compiled-sha256: %s\n' "$goal_compiled_hash"
+	printf 'check-sha256: %s\n' "$(check_hash)"
+	if [ -f "$HOME_DIR/bin/wake" ]; then
+		printf 'wake-sha256: %s\n' "$(wake_hash)"
+	fi
+	printf 'workspace: %s\n' "$HOME_DIR/work"
+	printf 'state: %s\n' "$HOME_DIR/state"
+	printf 'toolbox: %s\n' "$HOME_DIR/tools"
+	printf 'skills: %s\n' "$HOME_DIR/skills"
+	printf 'check: %s\n' "$HOME_DIR/bin/check"
+	printf 'evidence: %s\n' "$HOME_DIR/.agent/runs"
+	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
+	printf 'default-authority: full host tool catalogue; Cage writes work+state; network denied\n'
+	printf '\n# Definition files\n\n'
+	definition_files | while IFS= read -r name; do
+		printf -- '- `%s` (%s bytes)\n' "$HOME_DIR/$name" "$(bytes "$HOME_DIR/$name")"
+	done
+	printf '\n'
+	write_context
+	printf '\n# Goal input\n\n'
+	write_goal
+	if [ -f "$HOME_DIR/HEARTBEAT.md" ] && nonempty_markdown "$HOME_DIR/HEARTBEAT.md"; then
+		RUN_KIND=tick
+		RUN_WAKE_OUTPUT=
+		export RUN_KIND RUN_WAKE_OUTPUT
+		printf '\n# Heartbeat input before wake evidence\n\n'
+		write_goal
+		printf '\nheartbeat-compiled-sha256: %s\n' "$(compiled_hash)"
+		RUN_KIND=goal
+		export RUN_KIND
+	fi
+	if has_skills; then
+		printf '\n# Local skill catalogue\n\n'
+		brief_bin=$(tool AGENT_BRIEF brief)
+		BRIEF_PATH=$HOME_DIR/skills "$brief_bin" ls
+	fi
+}
+
+quote_for_sh() {
+	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\"'\\\"'/g")"
+}
+
+run_home() {
+	kind=$1
+	shift
+	net=0
+	use_cage=1
+	model=
+	effort=
+	quiet=0
+	while [ "$#" -gt 0 ]; do
+		case $1 in
+			-net) net=1; shift ;;
+			-no-cage) use_cage=0; shift ;;
+			-m) [ "$#" -ge 2 ] || die '-m needs MODEL'; model=$2; shift 2 ;;
+			-effort) [ "$#" -ge 2 ] || die '-effort needs NAME'; effort=$2; shift 2 ;;
+			-q) quiet=1; shift ;;
+			--) shift; break ;;
+			-*) die "unknown run flag: $1" ;;
+			*) break ;;
+		esac
+	done
+
+	home=${FORCED_HOME:-.}
+	if [ -z "${FORCED_HOME:-}" ] && [ "$#" -gt 0 ] && [ -d "$1" ]; then
+		home=$1
+		shift
+	fi
+	if [ "${1:-}" = -- ]; then shift; fi
+	open_home "$home"
+	if ! check_home; then
+		return 1
+	fi
+	RUN_KIND=$kind
+	RUN_WAKE_OUTPUT=
+	if [ "$kind" = tick ]; then
+		if [ ! -f "$HOME_DIR/HEARTBEAT.md" ] || ! nonempty_markdown "$HOME_DIR/HEARTBEAT.md"; then
+			say 'heartbeat is empty; quiet'
+			return 0
+		fi
+		set +e
+		RUN_WAKE_OUTPUT=$(cd "$HOME_DIR/work" && "$HOME_DIR/bin/wake")
+		wake_rc=$?
+		set -e
+		wake_bytes=$(printf '%s' "$RUN_WAKE_OUTPUT" | wc -c | tr -d '[:space:]')
+		if [ "$wake_bytes" -gt "$FILE_MAX" ]; then
+			say "bin/wake emitted $wake_bytes bytes; the limit is $FILE_MAX"
+			return 2
+		fi
+		case $wake_rc in
+			0) say 'wake check is quiet; no model call'; return 0 ;;
+			1) say 'wake check found work; starting heartbeat run' ;;
+			*) say "bin/wake is broken: exit $wake_rc"; return 2 ;;
+		esac
+	fi
+	export RUN_KIND RUN_WAKE_OUTPUT
+
+	ply_bin=$(tool AGENT_PLY ply)
+	brief_bin=$(tool AGENT_BRIEF brief)
+	action_shell=
+	if [ "$use_cage" -eq 1 ]; then
+		cage_bin=$(tool AGENT_CAGE cage)
+		action_shell=$(physical_dir "$(dirname "$0")")/agent-action-shell
+		[ -x "$action_shell" ] || die "action shell is not executable: $action_shell"
+		export AGENT_CAGE=$cage_bin AGENT_NET=$net
+	else
+		[ "$net" -eq 0 ] || die '-net has no meaning with -no-cage'
+		say 'warning: Cage is disabled; model actions have ordinary host write and network reach'
+	fi
+
+	tmp_parent=${TMPDIR:-/tmp}
+	tmp=$(mktemp -d "$tmp_parent/agent-run.XXXXXX") || die 'cannot create private context directory'
+	chmod 700 "$tmp"
+	context_skill=$tmp/agent-context
+	mkdir "$context_skill"
+	goal_file=$tmp/goal.md
+	RUN_STDIN_FILE=$tmp/stdin
+	cleanup() {
+		rm -rf "$tmp"
+	}
+	trap cleanup EXIT HUP INT TERM
+
+	RUN_INPUT=$*
+	if [ ! -t 0 ]; then
+		cat >"$RUN_STDIN_FILE"
+	else
+		: >"$RUN_STDIN_FILE"
+	fi
+	export RUN_INPUT RUN_STDIN_FILE
+
+	{
+		printf '%s\n' '---'
+		printf '%s\n' 'name: agent-context'
+		printf '%s\n' 'description: Private compiled context for this exact agent home run.'
+		printf '%s\n\n' '---'
+		write_context
+	} >"$context_skill/SKILL.md"
+	write_goal >"$goal_file"
+
+	export AGENT_HOME=$HOME_DIR
+	export AGENT_WORK=$HOME_DIR/work
+	export AGENT_STATE=$HOME_DIR/state
+	export AGENT_BIN=$(command -v "$0" 2>/dev/null || printf '%s' "$0")
+	export BRIEF=$brief_bin
+	export BRIEF_PATH=$HOME_DIR/skills
+	export PLY_DIR=$HOME_DIR/.agent/runs
+
+	check_cmd=$(quote_for_sh "$HOME_DIR/bin/check")
+	set -- -sh -t "$HOME_DIR/tools" -C "$HOME_DIR/work" -check "$check_cmd" -s "$context_skill"
+	if has_skills; then
+		set -- "$@" -s -
+	fi
+	[ -z "$model" ] || set -- "$@" -m "$model"
+	[ -z "$effort" ] || set -- "$@" -effort "$effort"
+	[ "$quiet" -eq 0 ] || set -- "$@" -q
+	[ -z "$action_shell" ] || set -- "$@" -action-shell "$action_shell"
+
+	run_hash=$(compiled_hash)
+	say "run $run_hash · check=$(check_hash) · work=$HOME_DIR/work · evidence=$HOME_DIR/.agent/runs"
+	if [ "$use_cage" -eq 1 ]; then
+		if [ "$net" -eq 1 ]; then
+			say 'authority: Cage writes work+state; network allowed by caller'
+		else
+			say 'authority: Cage writes work+state; network denied'
+		fi
+	fi
+
+	# The compiled goal is now a regular stdin file. Do not leak caller input,
+	# piped-input paths, or wake evidence through Ply's inherited environment.
+	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE
+
+	set +e
+	"$ply_bin" "$@" <"$goal_file"
+	rc=$?
+	set -e
+	return "$rc"
+}
+
+portable_name() {
+	case $1 in
+		''|*[!a-z0-9-]*|-*|*-) return 1 ;;
+		[a-z]*) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+specialist_home() {
+	specialist_parent=${1:-}
+	specialist_name=${2:-}
+	[ -n "$specialist_parent" ] && [ -n "$specialist_name" ] || die 'specialist needs PARENT and NAME'
+	portable_name "$specialist_name" || die "specialist name is not portable: $specialist_name"
+	shift 2
+
+	open_home "$specialist_parent"
+	if ! check_home; then
+		return 1
+	fi
+	specialist_child=$HOME_DIR/agents/$specialist_name
+	[ ! -L "$specialist_child" ] || die "specialist home may not be a symlink: $specialist_child"
+	specialist_child=$(physical_dir "$specialist_child") || die "specialist home not found: $specialist_name"
+	say "specialist $specialist_name · parent=$HOME_DIR · evidence=$specialist_child/.agent/runs"
+	FORCED_HOME=$specialist_child
+	run_home goal "$@"
+}
+
+session_in_home() {
+	raw=$1
+	case $raw in
+		*/*) candidate=$raw ;;
+		*)
+			candidate=$HOME_DIR/.agent/runs/$raw
+			[ -e "$candidate" ] || candidate=$candidate.jsonl
+			;;
+	esac
+	[ ! -L "$candidate" ] || die "session may not be a symlink: $candidate"
+	parent=$(physical_dir "$(dirname "$candidate")") || die "session directory not found: $candidate"
+	SESSION_FILE=$parent/$(basename "$candidate")
+	case $SESSION_FILE in
+		"$HOME_DIR/.agent/runs/"*) ;;
+		*) die "session is outside this home's run evidence: $SESSION_FILE" ;;
+	esac
+	safe_file "$SESSION_FILE" session || die "invalid session: $SESSION_FILE"
+	export SESSION_FILE
+}
+
+learn_home() {
+	into=
+	model=
+	count=
+	dry=0
+	why=0
+	quiet=0
+	while [ "$#" -gt 0 ]; do
+		case $1 in
+			-into) [ "$#" -ge 2 ] || die '-into needs SKILL'; into=$2; shift 2 ;;
+			-m) [ "$#" -ge 2 ] || die '-m needs MODEL'; model=$2; shift 2 ;;
+			-n) [ "$#" -ge 2 ] || die '-n needs COUNT'; count=$2; shift 2 ;;
+			-N) dry=1; shift ;;
+			-why) why=1; shift ;;
+			-q) quiet=1; shift ;;
+			-*) die "unknown learn flag: $1" ;;
+			*) break ;;
+		esac
+	done
+	[ -n "$into" ] || die 'learn requires -into SKILL'
+	portable_name "$into" || die "learning skill name is not portable: $into"
+	[ "$#" -eq 2 ] || die 'learn needs HOME and SESSION'
+	open_home "$1"
+	if ! check_home; then
+		return 1
+	fi
+	session_in_home "$2"
+	[ -w "$HOME_DIR/skills" ] || die "skills directory is not writable by the controller: $HOME_DIR/skills"
+
+	hone_bin=$(tool AGENT_HONE hone)
+	brief_bin=$(tool AGENT_BRIEF brief)
+	export BRIEF=$brief_bin
+	export BRIEF_PATH=$HOME_DIR/skills
+	export HONE_DIR=$HOME_DIR/.agent/learning
+	set -- -into "$into"
+	[ -z "$model" ] || set -- "$@" -m "$model"
+	[ -z "$count" ] || set -- "$@" -n "$count"
+	[ "$dry" -eq 0 ] || set -- "$@" -N
+	[ "$why" -eq 0 ] || set -- "$@" -why
+	[ "$quiet" -eq 0 ] || set -- "$@" -q
+	set -- "$@" "$SESSION_FILE"
+	say "learn · session=$SESSION_FILE · skill=$HOME_DIR/skills/$into · evidence=$HOME_DIR/.agent/learning"
+	set +e
+	"$hone_bin" "$@"
+	rc=$?
+	set -e
+	return "$rc"
+}
+
+cmd=${1:-help}
+case $cmd in
+	help|-h|--help)
+		usage
+		;;
+	version|-V|--version)
+		printf '%s %s\n' "$ME" "$VERSION"
+		;;
+	new)
+		shift
+		new_home "$@"
+		;;
+	check)
+		shift
+		open_home "${1:-.}"
+		if check_home; then exit 0; else exit 1; fi
+		;;
+	show)
+		shift
+		open_home "${1:-.}"
+		show_home
+		;;
+	run)
+		shift
+		run_home goal "$@"
+		;;
+	tick)
+		shift
+		run_home tick "$@"
+		;;
+	specialist)
+		shift
+		specialist_home "$@"
+		;;
+	learn)
+		shift
+		learn_home "$@"
+		;;
+	*)
+		die "unknown command: $cmd (run agent help)"
+		;;
+esac
