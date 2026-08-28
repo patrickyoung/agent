@@ -3,6 +3,9 @@
 Compile a directory-shaped digital worker and run its standing goal through
 the existing Bench tools.
 
+For the architecture at a glance, open the
+[one-page visual explainer](https://patrickyoung.github.io/agent/).
+
 ```sh
 agent new support-chief
 $EDITOR support-chief/AGENTS.md support-chief/GOAL.md support-chief/bin/check
