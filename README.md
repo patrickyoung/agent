@@ -3,11 +3,31 @@
 Compile a directory-shaped digital worker and run its standing goal through
 the existing Bench tools.
 
+Bench begins with a Unix premise: give a digital worker its own machine, deep
+fluency in the operating system, the right set of programs, and enough
+intelligence to get useful work done. It is not an agent framework, an SDK, or
+a hosted platform. Programs are capabilities; `PATH` is the tool registry;
+streams and files are protocols and durable state; exit status, signals, shell,
+Make, schedulers, and process groups provide control flow and orchestration.
+
+The complete suite supplies the capabilities commonly spread across several
+2026 products: Ask's append-only event history reconstructs and verifies exact
+model requests; Ply turns executable checks into sealed evaluations and can
+compose nested process workers; Agent supplies isolated homes and multiple
+kinds of memory; POSIX supplies workflow topology; and Tend adds transactional,
+event-sourced durability for any ordinary process. The real outer boundaries
+are multi-host placement, automatic journaling of arbitrary calls inside a
+process, managed serving and indexing planes, unified dashboards, and stronger
+machine/secret isolation—not replay, evaluation, memory, workflows, or
+multi-agent capability.
+
 For the architecture at a glance, open the
 [one-page visual explainer](https://patrickyoung.github.io/agent/). The
 [thirteen-component map](https://patrickyoung.github.io/agent/components.html)
 compares every released Bench component with prominent 2026 systems that solve
-the same class of problem.
+the same class of problem, shows the conventional industry stack for each
+capability, and identifies ideas Bench can borrow without moving away from
+Unix composition.
 
 Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
 Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
