@@ -35,6 +35,7 @@ support-chief/
   state/          mutable durable state, not injected into context
     kv/           file-shaped key/value state for simple durable facts
   .agent/runs/    replayable Ask sessions and Ply verifier receipts
+  .agent/checkpoints/ home-scoped conversation checkpoint pointers
   .agent/learning/ Hone wording sessions and reviewed proposal evidence
     proposals/     exact user-named lesson artifacts awaiting admission
   .agent/amendments/ controller receipts for approved definition patches
@@ -63,8 +64,8 @@ This is Ply's existing contract; `agent` does not reinterpret it.
 agent new DIR [description ...]
 agent check [DIR]
 agent show [DIR]
-agent run [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
-agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [DIR] [-- input ...]
+agent run [-net] [-no-cage] [-m MODEL] [-effort NAME] [-checkpoint NAME] [DIR] [-- input ...]
+agent tick [-net] [-no-cage] [-m MODEL] [-effort NAME] [-checkpoint NAME] [DIR] [-- input ...]
 agent specialist PARENT NAME [run flags] [-- input ...]
 agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-prepare PROPOSAL] [-q] HOME SESSION
 agent learn -show PROPOSAL HOME
@@ -85,6 +86,19 @@ another external scheduler. It runs `bin/wake` before resolving Ply or calling
 a model. Exit 0 is quiet and creates no Ask session; exit 1 starts a normal
 confined run with the probe's stdout as initial evidence; any other status is
 broken. An empty heartbeat is also quiet.
+
+`-checkpoint NAME` gives a run one portable, home-scoped conversation
+checkpoint under `.agent/checkpoints/`. Running the same command again resumes
+the current Ask session, including the session selected by Ply compaction. Ply
+holds a nonblocking whole-run lock, so concurrent use fails instead of
+interleaving two loops. The work tree and `bin/check` remain authoritative:
+the checkpoint is not a filesystem snapshot, and a process killed during an
+external effect still requires inspection before retry.
+
+```sh
+agent run -checkpoint release support-chief
+agent run -checkpoint release support-chief   # continue after interruption
+```
 
 `agent specialist` runs one direct child beneath `PARENT/agents/` in the
 foreground. The child gets its own instructions, goal, mutable roots, check,

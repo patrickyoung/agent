@@ -5,7 +5,7 @@
 set -eu
 
 ME=agent
-VERSION=0.1.1
+VERSION=0.1.2
 CONTEXT_MAX=65536
 FILE_MAX=32768
 PROPOSAL_MAX=16
@@ -45,6 +45,8 @@ run flags:
   -no-cage      use Ply's ordinary host action boundary
   -m MODEL      pass the provider/model literally to Ply
   -effort NAME  pass reasoning effort literally to Ply
+  -checkpoint NAME
+                resume through this home-scoped conversation checkpoint
   -q            suppress Ply's typescript
 
 specialist:
@@ -253,7 +255,7 @@ check_home() {
 			rc=1
 		}
 	done
-	for name in work/proposals .agent/amendments .agent/learning/proposals; do
+	for name in work/proposals .agent/amendments .agent/learning/proposals .agent/checkpoints; do
 		if [ -e "$HOME_DIR/$name" ] || [ -L "$HOME_DIR/$name" ]; then
 			safe_dir "$HOME_DIR/$name" "$name" || rc=1
 			[ -w "$HOME_DIR/$name" ] || {
@@ -413,7 +415,7 @@ new_home() {
 	desc=$*
 	[ -n "$desc" ] || desc='Describe this agent'
 
-	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments"
+	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
 	cat >"$dir/AGENTS.md" <<EOF
 # Operating instructions
 
@@ -466,7 +468,7 @@ EOF
 exit 0
 EOF
 	chmod 700 "$dir/bin/check" "$dir/bin/wake"
-	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/learning/proposals" "$dir/.agent/amendments"
+	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
 	printf '%s/AGENTS.md\n' "$dir"
 	say "scaffolded $dir; edit GOAL.md and bin/check, then run agent check $dir"
 }
@@ -498,6 +500,7 @@ show_home() {
 	printf 'skills: %s\n' "$HOME_DIR/skills"
 	printf 'check: %s\n' "$HOME_DIR/bin/check"
 	printf 'evidence: %s\n' "$HOME_DIR/.agent/runs"
+	printf 'checkpoints: %s\n' "$HOME_DIR/.agent/checkpoints"
 	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
 	printf 'learning-proposals: %s\n' "$HOME_DIR/.agent/learning/proposals"
 	printf 'amendment-evidence: %s\n' "$HOME_DIR/.agent/amendments"
@@ -538,6 +541,7 @@ run_home() {
 	use_cage=1
 	model=
 	effort=
+	checkpoint=
 	quiet=0
 	while [ "$#" -gt 0 ]; do
 		case $1 in
@@ -545,6 +549,7 @@ run_home() {
 			-no-cage) use_cage=0; shift ;;
 			-m) [ "$#" -ge 2 ] || die '-m needs MODEL'; model=$2; shift 2 ;;
 			-effort) [ "$#" -ge 2 ] || die '-effort needs NAME'; effort=$2; shift 2 ;;
+			-checkpoint) [ "$#" -ge 2 ] || die '-checkpoint needs NAME'; checkpoint=$2; shift 2 ;;
 			-q) quiet=1; shift ;;
 			--) shift; break ;;
 			-*) die "unknown run flag: $1" ;;
@@ -561,6 +566,19 @@ run_home() {
 	open_home "$home"
 	if ! check_home; then
 		return 1
+	fi
+	checkpoint_path=
+	if [ -n "$checkpoint" ]; then
+		checkpoint_name "$checkpoint" || die "checkpoint needs a portable name: $checkpoint"
+		checkpoint_dir=$HOME_DIR/.agent/checkpoints
+		if [ ! -e "$checkpoint_dir" ] && [ ! -L "$checkpoint_dir" ]; then
+			mkdir "$checkpoint_dir" || die "cannot create checkpoint directory: $checkpoint_dir"
+			chmod 700 "$checkpoint_dir"
+		fi
+		safe_dir "$checkpoint_dir" .agent/checkpoints || die 'invalid checkpoint directory'
+		[ -w "$checkpoint_dir" ] || die "checkpoint directory is not writable: $checkpoint_dir"
+		checkpoint_path=$checkpoint_dir/$checkpoint.current
+		validate_checkpoint_in_home "$checkpoint_path"
 	fi
 	RUN_KIND=$kind
 	RUN_WAKE_OUTPUT=
@@ -649,11 +667,12 @@ run_home() {
 	fi
 	[ -z "$model" ] || set -- "$@" -m "$model"
 	[ -z "$effort" ] || set -- "$@" -effort "$effort"
+	[ -z "$checkpoint_path" ] || set -- "$@" -checkpoint "$checkpoint_path"
 	[ "$quiet" -eq 0 ] || set -- "$@" -q
 	[ -z "$action_shell" ] || set -- "$@" -action-shell "$action_shell"
 
 	run_hash=$(compiled_hash)
-	say "run $run_hash · check=$(check_hash) · work=$HOME_DIR/work · evidence=$HOME_DIR/.agent/runs"
+	say "run $run_hash · check=$(check_hash) · work=$HOME_DIR/work · evidence=$HOME_DIR/.agent/runs${checkpoint:+ · checkpoint=$checkpoint}"
 	if [ "$use_cage" -eq 1 ]; then
 		if [ "$net" -eq 1 ]; then
 			say 'authority: Cage writes work+state; network allowed by caller'
@@ -679,6 +698,35 @@ portable_name() {
 		[a-z]*) return 0 ;;
 		*) return 1 ;;
 	esac
+}
+
+checkpoint_name() {
+	[ "${#1}" -le 64 ] && portable_name "$1"
+}
+
+validate_checkpoint_in_home() {
+	checkpoint_file=$1
+	[ ! -L "$checkpoint_file" ] || die "checkpoint may not be a symlink: $checkpoint_file"
+	[ -e "$checkpoint_file" ] || return 0
+	safe_file "$checkpoint_file" checkpoint || die "invalid checkpoint: $checkpoint_file"
+	checkpoint_size=$(bytes "$checkpoint_file")
+	[ "$checkpoint_size" -gt 0 ] && [ "$checkpoint_size" -le 16384 ] || die "checkpoint has invalid size: $checkpoint_file"
+	checkpoint_session=
+	IFS= read -r checkpoint_session <"$checkpoint_file" || die "checkpoint is not newline terminated: $checkpoint_file"
+	checkpoint_cr=$(printf '\r')
+	case $checkpoint_session in
+		''|*"$checkpoint_cr"*) die "checkpoint must contain one session path: $checkpoint_file" ;;
+	esac
+	checkpoint_line_size=$(printf '%s\n' "$checkpoint_session" | wc -c | tr -d '[:space:]')
+	[ "$checkpoint_line_size" -eq "$checkpoint_size" ] || die "checkpoint must contain one session path: $checkpoint_file"
+	checkpoint_parent=$(physical_dir "$(dirname "$checkpoint_session")") || die "checkpoint session directory not found: $checkpoint_session"
+	checkpoint_session=$checkpoint_parent/$(basename "$checkpoint_session")
+	case $checkpoint_session in
+		"$HOME_DIR/.agent/runs/"*) ;;
+		*) die "checkpoint session is outside this home's run evidence: $checkpoint_session" ;;
+	esac
+	[ ! -L "$checkpoint_session" ] || die "checkpoint session may not be a symlink: $checkpoint_session"
+	[ ! -e "$checkpoint_session" ] || safe_file "$checkpoint_session" session || die "invalid checkpoint session: $checkpoint_session"
 }
 
 specialist_home() {

@@ -144,7 +144,7 @@ assert_not_contains() {
 }
 
 version_output=$($agent version)
-if [ "$version_output" = 'agent 0.1.1' ]; then
+if [ "$version_output" = 'agent 0.1.2' ]; then
   ok 'version follows the suite component contract'
 else
   not_ok 'version follows the suite component contract'
@@ -164,6 +164,7 @@ assert_dir 'new creates mutable work root' "$home/work"
 assert_dir 'new creates mutable state root' "$home/state"
 assert_dir 'new creates file-shaped KV state' "$home/state/kv"
 assert_dir 'new creates run evidence root' "$home/.agent/runs"
+assert_dir 'new creates checkpoint root' "$home/.agent/checkpoints"
 assert_dir 'new creates learning evidence root' "$home/.agent/learning"
 assert_dir 'new creates reviewed learning proposal root' "$home/.agent/learning/proposals"
 assert_dir 'new creates definition proposal root' "$home/work/proposals"
@@ -184,6 +185,7 @@ assert_contains 'show emits definition byte counts' "$show" 'AGENTS.md` ('
 assert_contains 'show includes operating instructions' "$show" '## Operating instructions'
 assert_contains 'show keeps goal distinct' "$show" '# Goal input'
 assert_contains 'show makes default authority visible' "$show" 'network denied'
+assert_contains 'show names checkpoint root' "$show" "$home/.agent/checkpoints"
 
 child=$home/agents/researcher
 AGENT_BRIEF="$fake_bin/brief" "$agent" new "$child" 'Research one bounded question' >/dev/null
@@ -689,6 +691,53 @@ assert_contains 'model selection is forwarded' "$capture/argv" 'fixture-model'
 assert_contains 'effort selection is forwarded' "$capture/argv" 'high'
 assert_contains 'confined action shell is forwarded' "$capture/argv" 'agent-action-shell'
 assert_not_contains 'context body does not leak into argv' "$capture/argv" 'Own the support queue'
+
+rmdir "$home/.agent/checkpoints"
+if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
+  ok 'older home without checkpoint root still validates'
+else
+  not_ok 'older home without checkpoint root still validates'
+fi
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_PLY="$fake_bin/ply" \
+AGENT_CAGE="$fake_bin/cage" \
+AGENT_ASK="$fake_bin/ask" \
+AGENT_TEST_CAPTURE="$capture" \
+"$agent" run -checkpoint release "$home" >/dev/null 2>/dev/null
+assert_dir 'checkpoint run creates controller root lazily' "$home/.agent/checkpoints"
+assert_contains 'checkpoint name maps to one home-scoped Ply pointer' "$capture/argv" "$home/.agent/checkpoints/release.current"
+
+rm -f "$capture/argv"
+if AGENT_BRIEF="$fake_bin/brief" \
+   AGENT_PLY="$fake_bin/ply" \
+   AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$agent" run -checkpoint '../outside' "$home" >/dev/null 2>&1; then
+  not_ok 'checkpoint rejects path-shaped names'
+else
+  ok 'checkpoint rejects path-shaped names'
+fi
+if [ -e "$capture/argv" ]; then
+  not_ok 'invalid checkpoint stops before Ply'
+else
+  ok 'invalid checkpoint stops before Ply'
+fi
+
+outside_checkpoint_session=$tmp/outside-checkpoint.jsonl
+printf '%s\n' '{}' >"$outside_checkpoint_session"
+printf '%s\n' "$outside_checkpoint_session" >"$home/.agent/checkpoints/escape.current"
+if AGENT_BRIEF="$fake_bin/brief" \
+   AGENT_PLY="$fake_bin/ply" \
+   AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$agent" run -checkpoint escape "$home" >/dev/null 2>&1; then
+  not_ok 'checkpoint refuses sessions outside home evidence'
+else
+  ok 'checkpoint refuses sessions outside home evidence'
+fi
+rm "$home/.agent/checkpoints/escape.current"
 
 link_bin=$tmp/link-bin
 mkdir -p "$link_bin"

@@ -24,6 +24,9 @@ The complete research and product rationale is in
 - [x] `agent run` loads private home context through Brief rather than argv,
       works in `work/`, stores Ask sessions under `.agent/runs`, and lets the
       home-owned executable `bin/check` decide completion through Ply.
+- [x] A named checkpoint maps to one controller-owned Ply session pointer,
+      follows compaction, excludes concurrent use, and resumes conversation
+      context without making Agent a scheduler or claiming effect safety.
 - [x] The default model-action boundary lets the worker write only `work/`,
       `state/`, and its temporary directory, with network denied by Cage.
 - [x] A home cannot grant itself broader authority. Network and unconstrained
@@ -72,6 +75,7 @@ The complete research and product rationale is in
 | validate/select procedures | brief | it owns Agent Skills |
 | work until the check accepts | ply | it owns the action/check loop |
 | call the model and record turns | ask, through ply | it owns providers and sessions |
+| lock and advance a conversation checkpoint | ply | it owns the current Ask session |
 | confine model-authored actions | cage | it owns the OS boundary |
 | admit learned procedures | hone | it owns verified learning |
 | browse prior runs | trail | it owns read-only Ask archive inspection |
@@ -88,6 +92,7 @@ The complete research and product rationale is in
       work/proposals/   proposed one-file unified diffs
     evidence:
       .agent/runs/       Ask sessions and Ply verifier receipts
+      .agent/checkpoints/ locked current-session pointers
       .agent/learning/   Hone wording sessions
         proposals/       exact reviewed-learning artifacts
       .agent/amendments/ accepted definition-change receipts

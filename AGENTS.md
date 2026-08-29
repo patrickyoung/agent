@@ -14,6 +14,8 @@ When changing `agent`:
 - load Agent Skills only through Brief and keep private context out of argv;
 - keep Ask sessions authoritative; do not add another transcript or parse
   Ask's event format;
+- keep checkpoints as controller-owned pointers to Ask sessions, never as a
+  second log, filesystem snapshot, retry policy, or completion claim;
 - call public binaries with literal arguments and never run user text through
   an extra shell;
 - resolve every home and control path before work, refuse unsafe symlinked
@@ -28,4 +30,3 @@ When changing `agent`:
 
 Do not add a provider adapter, agent loop, skill parser, scheduler, daemon,
 registry, memory index, task database, sandbox implementation, or approval UI.
-

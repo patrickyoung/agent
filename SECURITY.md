@@ -79,3 +79,11 @@ Ask sessions and Ply verifier receipts under `.agent/runs/` are evidence of
 the exact conversation and verdict. They prove replay integrity and the
 recorded check outcome, not that the model, home, or external data was
 trustworthy.
+
+Named checkpoint pointers live under `.agent/checkpoints/`, outside Cage's
+writable roots, and may name only sessions under the same home's
+`.agent/runs/`. Agent rejects symlinked, malformed, oversized, or escaping
+pointers before invoking Ply. Ply locks the checkpoint for the whole run and
+publishes pointer changes durably. A checkpoint preserves conversation
+context; it neither rolls back the work tree nor proves whether an external
+effect interrupted in flight happened.
