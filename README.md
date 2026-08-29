@@ -30,7 +30,7 @@ capability, and identifies ideas Bench can borrow without moving away from
 Unix composition. [MCP, the Unix way](MCP.md) gives the concrete design for
 using the complete MCP surface through filters and capability directories
 without putting an MCP runtime inside Ply or Agent; its first edge release is
-the standalone [`mcp`/`mcpbox` sibling](https://github.com/patrickyoung/mcp).
+the standalone [`mcp` edge](https://github.com/patrickyoung/mcp).
 
 Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
 Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
@@ -231,9 +231,11 @@ The Bench `0.9.0` suite also ships Tend as an independent local process
 supervisor. It is not an Agent dependency: compose it outside an exact
 `agent run -checkpoint NAME HOME` invocation when the whole process needs
 durable submission, waits, output evidence, and conservative crash recovery.
-The standalone `mcp` and `mcpbox` siblings provide the MCP edge in the same
-style: exact protocol requests plus reviewed Unix programs, prompt filters,
-resource readers, catalogues, continuations, Tasks, and JSONL subscriptions.
+The standalone `mcp` distribution provides the MCP edge in the same style:
+exact protocol requests plus reviewed Unix programs, prompt filters, resource
+readers, catalogues, continuations, Tasks, and JSONL subscriptions. Agent
+depends only on any admitted programs placed in its toolbox, never on the
+compiler that produced them.
 
 `just eval` runs the frozen representative-home corpus in `eval/corpus/`.
 It proves already-complete re-entry makes no model call, quiet heartbeats stop

@@ -28,17 +28,14 @@ described here.
 
 ## Why the current direction is right
 
-Ply's `contrib/mcpbox` already proves the central idea: `tools/list` is a
-directory listing waiting to happen. A tool name, description, and JSON Schema
-become a program name, synopsis, help text, and invocation contract. Putting
-only selected generated programs on `PATH` is better than injecting a remote
-server's entire catalogue into a model runtime.
+`tools/list` is a directory listing waiting to happen. A tool name,
+description, and JSON Schema become a program name, synopsis, help text, and
+invocation contract. Putting only selected generated programs on `PATH` is
+better than injecting a remote server's entire catalogue into a model runtime.
 
-Pack adds another important piece: server declarations and reviewed tool
-selection survive regeneration. Its `.mcp.json` plus `.keep` convention is a
-prototype for durable admission, although name-only admission must become
-descriptor-digest admission and an unadmitted regeneration must leave no
-callable programs behind.
+The standalone edge makes that selection durable with descriptor-digest
+admission. Bench programs consume only the resulting capability directory;
+they neither discover servers nor depend on the compiler that produced it.
 
 The mistake would be to stop at tools and call every other MCP primitive a
 Bench deficiency. The fix is to finish the edge projection.
@@ -85,7 +82,7 @@ The implementation should use the official Tier-1
 the Unix process contract, not hand-roll JSON-RPC framing, version negotiation,
 Streamable HTTP, OAuth, or future extension codecs.
 
-### `mcpbox`: the namespace compiler
+### The namespace compiler (`mcpbox`)
 
 `mcpbox` discovers one server and writes a reviewable directory of Unix
 capabilities that call `mcp`.
@@ -142,13 +139,13 @@ inheriting old authority.
 
 | MCP surface | Unix / Bench projection | Owner |
 | --- | --- | --- |
-| Tools | One reviewed executable per tool; only selected wrappers enter a worker's `PATH` | `mcpbox` + Ply toolbox |
-| Tool input/output schema | Full JSON Schema 2020-12 retained byte-for-byte; simple flat schemas may offer positional convenience; every schema accepts exact JSON on stdin | `mcpbox` wrapper |
+| Tools | One reviewed executable per tool; only selected wrappers enter a worker's `PATH` | capability compiler + Ply toolbox |
+| Tool input/output schema | Full JSON Schema 2020-12 retained byte-for-byte; simple flat schemas may offer positional convenience; every schema accepts exact JSON on stdin | generated wrapper |
 | Text and structured results | Exact result JSON on stdout; an explicit `mcp text` filter may print only supported text blocks and must refuse unhandled content | `mcp` |
 | Images, audio, blobs, embedded resources | Lossless result records; a separate `mcp-unpack -C DIR` filter materializes digest-named files and emits a JSONL manifest | `mcp-unpack` |
-| Resources and templates | Catalogue JSONL plus an explicit `read URI` filter; Context connectors normalize selected reads into replayable cited evidence | `mcpbox` + Context program |
-| Prompts | Operator-invoked filters that emit an attributed prompt envelope; never silently installed as a Skill, system prompt, or prior assistant message | `mcpbox` + caller |
-| Completion | An ordinary completion filter for shell/editor use | `mcpbox` |
+| Resources and templates | Catalogue JSONL plus an explicit `read URI` filter; Context connectors normalize selected reads into replayable cited evidence | capability directory + Context program |
+| Prompts | Operator-invoked filters that emit an attributed prompt envelope; never silently installed as a Skill, system prompt, or prior assistant message | capability directory + caller |
+| Completion | An ordinary completion filter for shell/editor use | capability directory |
 | `input_required` / MRTR | Exact continuation data on stdout with a nonterminal exit; caller supplies response JSON and retries explicitly | `mcp` + shell/controller |
 | Elicitation | Additional input, never confused with authorization | caller; May remains separate |
 | Sampling request | Explicit data that an operator-selected adapter may pipe to Ask; never hidden recursive model access | Ask adapter outside `mcp` |
@@ -156,9 +153,9 @@ inheriting old authority.
 | Tasks | Remote task handles remain ordinary data; `get`, `update`, and `cancel` are requests; polling may run under Tend | MCP server + `mcp` + Tend |
 | Subscriptions | A foreground JSONL stream whose lifetime is its pipe; gaps cause exit rather than hidden reconnect | `mcp listen` |
 | Progress and cancellation | Progress on an explicit event stream; SIGINT maps to cancellation and bounded process-group cleanup | `mcp` |
-| Cache hints | Catalogue snapshots retain `ttlMs` and `cacheScope`; cache freshness never changes admission | `mcpbox` |
+| Cache hints | Catalogue snapshots retain `ttlMs` and `cacheScope`; cache freshness never changes admission | capability compiler |
 | Trace context | W3C trace fields pass through; Ask and Tend evidence remain authoritative local records | `mcp` |
-| OAuth and enterprise auth | Official SDK plus operator credential helper/keychain; issuer-bound credentials, no Bench token store | transport edge |
+| OAuth and enterprise auth | The standalone [`oauth`](https://github.com/patrickyoung/oauth) filter owns discovery, PKCE/device/client-credentials login, issuer/resource binding, secure refresh, and descriptor-based header transfer; `mcp` remains credential-blind | `oauth` + transport edge |
 | MCP Registry | Search produces a proposed endpoint descriptor for review; discovery never installs or runs a server | optional registry filter |
 | MCP Apps | Transport UI resources and structured/text fallbacks losslessly; rendering stays in a browser/host outside Bench | external host |
 
@@ -285,7 +282,7 @@ prompt installer, and second trace format.
 1. Build `mcp discover` and `mcp request` over stdio for MCP `2026-07-28`,
    using the official Go SDK. Preserve all content kinds, unknown `_meta`, and
    full schemas. Prove process cleanup and pre-send/post-send outcomes first.
-2. Rewrite `mcpbox` on that filter. Support paginated `tools/list`, atomic
+2. Build the capability compiler on that filter. Support paginated `tools/list`, atomic
    directory generation, descriptor-digest admission, JSON-on-stdin, and
    exact tool results. Remove shallow coercion for complex schemas.
 3. Add Resources, resource templates, Prompts, and Completion as separate
@@ -295,16 +292,17 @@ prompt installer, and second trace format.
    files, shell, and Tend; do not add a poller daemon or task database.
 5. Add foreground subscriptions with gap semantics and catalogue refresh that
    can revoke but never silently grant.
-6. Add Streamable HTTP and authorization using the official SDK and an
-   operator-owned credential helper. Support legacy servers only through an
-   explicit compatibility process.
+6. Add Streamable HTTP and compose authorization through the operator-owned
+   `oauth` filter. Support legacy servers only through an explicit
+   compatibility process.
 7. Add `mcpserve` after the consuming edge is proven. Export only explicitly
    described capability directories.
 
 The first release is deliberately narrow: stdio discovery, paginated
 catalogues, exact requests, honest unknown-effect handling, and a rebuilt
-`mcpbox`. That slice establishes the hardest invariant while keeping the final
-architecture open to every current MCP primitive and extension.
+capability compiler. That slice establishes the hardest invariant while
+keeping the final architecture open to every current MCP primitive and
+extension.
 
 ## What not to build
 

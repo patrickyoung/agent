@@ -747,7 +747,7 @@
 
         <div class="composition-note reveal">
           <strong>MCP is an edge adapter, not a fourteenth suite component.</strong>
-          <span>Ply’s source tree includes <code>contrib/mcpbox</code>. It discovers <code>tools/list</code>, reads JSON Schemas, and writes one ordinary program per MCP tool into an enforced toolbox directory. It is available today but is not installed by the Bench 0.9.0 archive; the bridge still owns transport, authentication, sessions, and protocol negotiation.</span>
+          <span>The standalone MCP edge discovers remote capabilities and produces a descriptor-admitted directory of ordinary programs. Bench and Ply consume that directory without depending on its compiler or learning the wire protocol. The edge is available today but remains outside the Bench 0.9.0 archive.</span>
         </div>
 
         <div class="composition-note reveal">
@@ -805,7 +805,7 @@
             <div class="cap-row"><strong>Memory</strong><span>Exact thread history, curated files and state, verified Hone procedures, Context evidence, and Trail recall</span></div>
             <div class="cap-row"><strong>Workflow</strong><span>Shell, pipes, Make, process groups, schedulers, and Tend’s durable process boundary</span></div>
             <div class="cap-row"><strong>Process continuity</strong><span>Tend supervision around any exact command, including an Agent run</span></div>
-            <div class="cap-row"><strong>MCP capabilities</strong><span><code>mcpbox</code> compiling discovered tools into an enforced Ply directory allowlist</span></div>
+            <div class="cap-row"><strong>MCP capabilities</strong><span>An operator-provisioned, descriptor-admitted capability directory used as Ply’s allowlist</span></div>
             <div class="cap-row"><strong>Safe action</strong><span>Agent tools inside the Cage boundary</span></div>
             <div class="cap-row"><strong>Cheap recurring work</strong><span><code>bin/wake</code> stopping quiet ticks before a model call</span></div>
             <div class="cap-row"><strong>Multi-agent work</strong><span>Nested homes, nested Ply workers, POSIX fan-out/join, and isolated goals, checks, and evidence</span></div>
