@@ -27,15 +27,18 @@ For the architecture at a glance, open the
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
 capability, and identifies ideas Bench can borrow without moving away from
-Unix composition.
+Unix composition. [MCP, the Unix way](MCP.md) gives the concrete design for
+using the complete MCP surface through filters and capability directories
+without putting an MCP runtime inside Ply or Agent; its first edge release is
+the standalone [`mcp`/`mcpbox` sibling](https://github.com/patrickyoung/mcp).
 
 Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
 Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
 normalized external evidence through executable connectors; Cite is the
 separate deterministic filter that accepts only exact Context ref-to-URL
-Markdown citations. Ply's source tree also includes the optional
-`contrib/mcpbox` adapter for compiling MCP tool catalogues into ordinary
-toolbox programs; `mcpbox` is not a Bench 0.9.0 installed command.
+Markdown citations. The separately installed `mcp` sibling now supplies the
+modern protocol filter and reviewed capability-folder compiler; it remains
+outside the thirteen-component Bench 0.9.0 archive.
 
 ```sh
 agent new support-chief
@@ -228,8 +231,9 @@ The Bench `0.9.0` suite also ships Tend as an independent local process
 supervisor. It is not an Agent dependency: compose it outside an exact
 `agent run -checkpoint NAME HOME` invocation when the whole process needs
 durable submission, waits, output evidence, and conservative crash recovery.
-Ply's `contrib/mcpbox` provides the MCP edge in the same style by compiling a
-server's discovered tools into one allowlisted Unix program per capability.
+The standalone `mcp` and `mcpbox` siblings provide the MCP edge in the same
+style: exact protocol requests plus reviewed Unix programs, prompt filters,
+resource readers, catalogues, continuations, Tasks, and JSONL subscriptions.
 
 `just eval` runs the frozen representative-home corpus in `eval/corpus/`.
 It proves already-complete re-entry makes no model call, quiet heartbeats stop
