@@ -4,7 +4,18 @@ Compile a directory-shaped digital worker and run its standing goal through
 the existing Bench tools.
 
 For the architecture at a glance, open the
-[one-page visual explainer](https://patrickyoung.github.io/agent/).
+[one-page visual explainer](https://patrickyoung.github.io/agent/). The
+[thirteen-component map](https://patrickyoung.github.io/agent/components.html)
+compares every released Bench component with prominent 2026 systems that solve
+the same class of problem.
+
+Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
+Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
+normalized external evidence through executable connectors; Cite is the
+separate deterministic filter that accepts only exact Context ref-to-URL
+Markdown citations. Ply's source tree also includes the optional
+`contrib/mcpbox` adapter for compiling MCP tool catalogues into ordinary
+toolbox programs; `mcpbox` is not a Bench 0.9.0 installed command.
 
 ```sh
 agent new support-chief
