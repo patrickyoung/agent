@@ -631,6 +631,7 @@
     <nav class="nav-links" aria-label="Page sections">
       <a href="#loop">The loop</a>
       <a href="#components">Components</a>
+      <a href="components.html">13-part map</a>
       <a href="#foundation">Foundation</a>
       <a href="#start">Try it</a>
       <a class="button secondary" href="compare.html">2026 comparison →</a>
@@ -640,15 +641,16 @@
   <main id="top">
     <section class="shell hero">
       <div class="hero-copy">
-        <p class="eyebrow">Capability by composition</p>
-        <h1>An agent you can inspect, constrain, and prove.</h1>
-        <p class="hero-lede"><strong>Agent turns a durable goal into a verified outcome.</strong> It stays small by composing focused Bench tools for context, intelligence, work structure, confinement, evidence, learning, human approval, conversation continuity, and optional process supervision.</p>
+        <p class="eyebrow">A digital worker at a Unix machine</p>
+        <h1>Give intelligence a Linux box—and make it accountable.</h1>
+        <p class="hero-lede"><strong>Bench asks what a digital worker could do with deep Unix fluency, the right programs, and enough intelligence to finish real work.</strong> It is a complete Unix agent system: thirteen focused components compose through processes, streams, files, signals, exit status, and verified event history to turn a durable goal into a proven outcome.</p>
         <div class="principles" aria-label="Core principles">
           <span class="pill">the goal drives the work</span>
           <span class="pill">files are the interface</span>
           <span class="pill">code decides “done”</span>
           <span class="pill">authority comes from the caller</span>
           <span class="pill">conversation resumes by name</span>
+          <span class="pill">events replay and verify</span>
           <span class="pill">MCP tools become programs</span>
         </div>
         <div class="actions">
@@ -683,8 +685,8 @@
         <div class="section-head reveal">
           <p class="section-kicker">01 / The loop</p>
           <div>
-            <h2>Goals drive outcomes. Ply gives intelligence a way to get there.</h2>
-            <p class="section-intro"><code>GOAL.md</code> holds the desired outcome steady. Ply provides the disciplined work/check/retry structure and can advance one named Ask-session checkpoint. Inside each attempt, Ask supplies the model intelligence that works on a solution.</p>
+            <h2>Unix supplies the workplace. Bench supplies accountability.</h2>
+            <p class="section-intro"><code>GOAL.md</code> holds the outcome steady. Ply runs a disciplined work/check/retry process; Ask records the complete run as an append-only event history that can reconstruct and verify every normalized model request. Programs do the work, exit status decides control flow, and Tend can durably supervise any process.</p>
           </div>
         </div>
 
@@ -703,11 +705,11 @@
 
         <ol class="loop reveal">
           <li class="loop-card"><span class="step-no">01</span><h3>Aim</h3><p>The durable <strong>goal</strong> defines the outcome; rules, persona, plan, and memory shape the work.</p></li>
-          <li class="loop-card"><span class="step-no">02</span><h3>Compose</h3><p><strong>Agent + Brief</strong> validate the home and load only the relevant context and skills.</p></li>
-          <li class="loop-card"><span class="step-no">03</span><h3>Solve</h3><p><strong>Ply</strong> structures the loop and preserves a named conversation; <strong>Ask</strong> supplies intelligence for each solution attempt.</p></li>
+          <li class="loop-card"><span class="step-no">02</span><h3>Compose</h3><p><strong>Agent + Brief</strong> validate the home and load relevant procedures. When outside facts matter, <strong>Context + Cite</strong> keep retrieval and citation identity explicit.</p></li>
+          <li class="loop-card"><span class="step-no">03</span><h3>Solve</h3><p><strong>Ply</strong> structures the loop and can fan out to isolated process workers; <strong>Ask</strong> supplies intelligence and records the replayable event spine.</p></li>
           <li class="loop-card"><span class="step-no">04</span><h3>Confine</h3><p><strong>Cage</strong> limits writes to <code>work/</code> and <code>state/</code>; network is off by default.</p></li>
           <li class="loop-card"><span class="step-no">05</span><h3>Verify</h3><p>The home’s executable <strong><code>bin/check</code></strong> accepts or rejects the result—not model prose.</p></li>
-          <li class="loop-card"><span class="step-no">06</span><h3>Remember</h3><p><strong>Trail, Hone, and May</strong> make evidence browsable and change deliberate.</p></li>
+          <li class="loop-card"><span class="step-no">06</span><h3>Replay + learn</h3><p><strong>Ask, Trail, Hone, and May</strong> make requests reconstructible, evidence browsable, recovery reusable, and change deliberate.</p></li>
         </ol>
 
         <div class="verdict reveal">
@@ -720,29 +722,37 @@
     <section id="components">
       <div class="shell">
         <div class="section-head reveal">
-          <p class="section-kicker">02 / The components</p>
+          <p class="section-kicker">02 / The complete suite</p>
           <div>
-            <h2>Small tools. Clear ownership. Stronger together.</h2>
-            <p class="section-intro">No component quietly absorbs another’s job. That makes the system easier to reason about, replace, test, and trust.</p>
+            <h2>Thirteen shipped components. Thirteen visible jobs.</h2>
+            <p class="section-intro">This is the complete Bench 0.9.0 manifest—not only the inner Agent loop. No component quietly absorbs another’s job, so the system remains easier to reason about, replace, test, and trust.</p>
           </div>
         </div>
 
         <div class="components">
-          <article class="component agent-card reveal"><div class="component-top"><h3>agent</h3><span>⌘</span></div><div class="component-role">compiler + controller</div><p>Validates the directory, assembles the run, exposes exact composition, and keeps definition, mutable work, and evidence separate.</p><span class="component-tag">scaffold · show · run · tick</span></article>
-          <article class="component reveal"><div class="component-top"><h3>brief</h3><span>◫</span></div><div class="component-role">context</div><p>Finds, validates, and prints the relevant written procedures and Agent Skills. It never calls a model.</p><span class="component-tag">rules · skills · selection</span></article>
-          <article class="component reveal"><div class="component-top"><h3>ply</h3><span>↻</span></div><div class="component-role">structure for progress</div><p>Frames attempts, runs the external check, returns feedback, retries, and durably advances one named Ask-session pointer across restarts and compaction.</p><span class="component-tag">attempt · check · retry · resume</span></article>
-          <article class="component reveal"><div class="component-top"><h3>ask</h3><span>✦</span></div><div class="component-role">intelligence + sessions</div><p>Calls the selected model to reason through each solution attempt and records replayable turns. It does not own the goal or completion.</p><span class="component-tag">reason · adapt · record</span></article>
+          <article class="component reveal"><div class="component-top"><h3>bench</h3><span>▤</span></div><div class="component-role">operator workbench</div><p>Turns open intent into a visible outcome contract, then invokes the other filters without becoming another model, tool loop, or evidence store.</p><span class="component-tag">intent · contract · task · promote</span></article>
+          <article class="component agent-card reveal"><div class="component-top"><h3>agent</h3><span>⌘</span></div><div class="component-role">folder-shaped worker</div><p>Compiles a Unix home of goals, memory, tools, checks, state, evidence, and recursively isolated specialist workers into process boundaries.</p><span class="component-tag">scaffold · run · specialize · tick</span></article>
+          <article class="component reveal"><div class="component-top"><h3>brief</h3><span>◫</span></div><div class="component-role">procedure catalogue</div><p>Finds, validates, and prints the relevant written procedures and Agent Skills. It never calls a model.</p><span class="component-tag">rules · skills · selection</span></article>
+          <article class="component reveal"><div class="component-top"><h3>ply</h3><span>↻</span></div><div class="component-role">checked process agent loop</div><p>Frames attempts, runs and seals external evaluations, returns feedback, resumes named Ask checkpoints, and invokes nested Ply workers as ordinary tools.</p><span class="component-tag">attempt · evaluate · retry · fan-out</span></article>
+          <article class="component reveal"><div class="component-top"><h3>ask</h3><span>✦</span></div><div class="component-role">intelligence + event spine</div><p>Calls the selected model and records exact messages, evidence, reasoning, metadata, usage, outcomes, and sealed records. Replay reconstructs and verifies every request.</p><span class="component-tag">reason · event · fold · replay</span></article>
+          <article class="component reveal"><div class="component-top"><h3>context</h3><span>⌕</span></div><div class="component-role">external evidence seam</div><p>Runs one caller-selected source connector, validates its JSONL records, and stamps the exact query and connector digest without routing or synthesis.</p><span class="component-tag">discover · query · merge · provenance</span></article>
+          <article class="component reveal"><div class="component-top"><h3>cite</h3><span>§</span></div><div class="component-role">citation identity gate</div><p>Prints a candidate unchanged only when every <code>ctx:</code> reference is an exact Markdown ref-to-URL pair from the supplied Context evidence.</p><span class="component-tag">literal · deterministic · fail closed</span></article>
           <article class="component reveal"><div class="component-top"><h3>cage</h3><span>▦</span></div><div class="component-role">authority boundary</div><p>Confines model-authored actions at the OS boundary. A toolbox suggests what to use; Cage controls what can happen.</p><span class="component-tag">writes · network · process</span></article>
-          <article class="component reveal"><div class="component-top"><h3>trail</h3><span>⌁</span></div><div class="component-role">evidence browser</div><p>Lists, searches, windows, and replay-checks prior runs without inventing another session format or writer.</p><span class="component-tag">history · lineage · integrity</span></article>
-          <article class="component reveal"><div class="component-top"><h3>hone</h3><span>◇</span></div><div class="component-role">reviewed learning</div><p>Turns a verified recovery into a proposed procedure update. Learning is explicit, inspectable, and never automatic.</p><span class="component-tag">prepare · show · admit</span></article>
+          <article class="component reveal"><div class="component-top"><h3>trail</h3><span>⌁</span></div><div class="component-role">event archive query</div><p>Lists, searches, windows, follows lineage, and delegates replay verification over the authoritative Ask events—without a shadow trace store.</p><span class="component-tag">history · query · lineage · integrity</span></article>
+          <article class="component reveal"><div class="component-top"><h3>hone</h3><span>◇</span></div><div class="component-role">verified procedural memory</div><p>Turns replay-verified fail→pass recovery into a proposed procedure update, retaining its provenance and requiring separate admission.</p><span class="component-tag">recover · prepare · review · admit</span></article>
           <article class="component reveal"><div class="component-top"><h3>may</h3><span>◎</span></div><div class="component-role">human authorization</div><p>Binds one human decision to exact proposed bytes and current state before a definition change can be applied.</p><span class="component-tag">review · decide · receipt</span></article>
-          <article class="component reveal"><div class="component-top"><h3>tend</h3><span>◷</span></div><div class="component-role">durable process supervisor</div><p>Supervises exact argv with local SQLite state, durable signals and timers, immutable output evidence, and explicit resolution when a started effect is uncertain.</p><span class="component-tag">submit · wait · work · resolve</span></article>
-          <article class="component reveal"><div class="component-top"><h3>mcpbox</h3><span>⇄</span></div><div class="component-role">Ply contrib MCP adapter</div><p>Discovers an MCP server’s tool catalogue and JSON Schemas, then writes one help-bearing, type-aware Unix program per capability for a Ply toolbox.</p><span class="component-tag">discover · compile · allowlist · call</span></article>
+          <article class="component reveal"><div class="component-top"><h3>tend</h3><span>◷</span></div><div class="component-role">event-sourced process durability</div><p>Supervises exact argv with transactional SQLite state, immutable lifecycle events, durable signals and timers, verified artifacts, projection replay, and explicit uncertain-effect resolution.</p><span class="component-tag">submit · wait · replay · resolve</span></article>
+          <article class="component reveal"><div class="component-top"><h3>draft</h3><span>△</span></div><div class="component-role">design + promotion path</div><p>Turns an argued <code>DESIGN.md</code> into explicit build and proof commands, composing Ask, Brief, Ply, and Hone instead of hiding another framework.</p><span class="component-tag">new · check · build · prove</span></article>
+        </div>
+
+        <div class="composition-note reveal">
+          <strong>MCP is an edge adapter, not a fourteenth suite component.</strong>
+          <span>Ply’s source tree includes <code>contrib/mcpbox</code>. It discovers <code>tools/list</code>, reads JSON Schemas, and writes one ordinary program per MCP tool into an enforced toolbox directory. It is available today but is not installed by the Bench 0.9.0 archive; the bridge still owns transport, authentication, sessions, and protocol negotiation.</span>
         </div>
 
         <div class="composition-note reveal">
           <strong>The refusals are features.</strong>
-          <span>Ask has no tools. Ply has no model or hidden MCP session. Brief does not decide. Cage does not infer intent. Tend does not claim exactly-once effects. MCP transport stays in a bridge while <code>mcpbox</code> turns approved capabilities into ordinary programs. Each narrow contract prevents invisible authority from accumulating in one opaque runtime.</span>
+          <span>Ask has no tools. Context never chooses a source or synthesizes an answer. Cite verifies literal identity, not semantic support. Ply has no model or hidden MCP session. Brief does not decide. Cage does not infer intent. Tend does not claim exactly-once effects. Each narrow contract prevents invisible authority from accumulating in one opaque runtime.</span>
         </div>
       </div>
     </section>
@@ -752,8 +762,8 @@
         <div class="section-head reveal">
           <p class="section-kicker">03 / The foundation</p>
           <div>
-            <h2>The filesystem is the control plane.</h2>
-            <p class="section-intro">An agent home is ordinary, portable, diffable, and understandable without a dashboard or database.</p>
+            <h2>Unix is the control plane.</h2>
+            <p class="section-intro">A worker home is ordinary, portable, diffable, and understandable without a framework. Files hold durable definition and evidence; processes execute capabilities; streams carry data; signals and exit status coordinate work.</p>
           </div>
         </div>
 
@@ -783,14 +793,22 @@
 
           <article class="capability-card reveal">
             <div class="card-label">Capability comes from…</div>
+            <div class="cap-row"><strong>Open-task workbench</strong><span>Bench making intent, contracts, evidence, and promotion visible</span></div>
+            <div class="cap-row"><strong>System design</strong><span>Draft turning an argued design into executable build and proof seams</span></div>
             <div class="cap-row"><strong>Understanding the job</strong><span>Definition files composed through Brief</span></div>
             <div class="cap-row"><strong>Model judgment</strong><span>Ask, with provider and session ownership</span></div>
+            <div class="cap-row"><strong>External evidence</strong><span>Context connectors with normalized records, stable refs, exact queries, and connector digests</span></div>
+            <div class="cap-row"><strong>Citation identity</strong><span>Cite requiring exact Context ref-to-URL Markdown links before printing a candidate</span></div>
             <div class="cap-row"><strong>Conversation continuity</strong><span>Ply checkpoints resuming the same Ask session after interruption or compaction</span></div>
-            <div class="cap-row"><strong>Process continuity</strong><span>Optional Tend supervision around any exact command, including an Agent run</span></div>
+            <div class="cap-row"><strong>Full event replay</strong><span>Ask reconstructing exact requests and verifying events; Tend replaying immutable events into job projections</span></div>
+            <div class="cap-row"><strong>Evaluation</strong><span>Executable checks, sealed Ply verdicts, Draft mutation testing, frozen corpora, and replay-stable runs</span></div>
+            <div class="cap-row"><strong>Memory</strong><span>Exact thread history, curated files and state, verified Hone procedures, Context evidence, and Trail recall</span></div>
+            <div class="cap-row"><strong>Workflow</strong><span>Shell, pipes, Make, process groups, schedulers, and Tend’s durable process boundary</span></div>
+            <div class="cap-row"><strong>Process continuity</strong><span>Tend supervision around any exact command, including an Agent run</span></div>
             <div class="cap-row"><strong>MCP capabilities</strong><span><code>mcpbox</code> compiling discovered tools into an enforced Ply directory allowlist</span></div>
             <div class="cap-row"><strong>Safe action</strong><span>Agent tools inside the Cage boundary</span></div>
             <div class="cap-row"><strong>Cheap recurring work</strong><span><code>bin/wake</code> stopping quiet ticks before a model call</span></div>
-            <div class="cap-row"><strong>Specialization</strong><span>Nested homes with isolated goals, checks, and evidence</span></div>
+            <div class="cap-row"><strong>Multi-agent work</strong><span>Nested homes, nested Ply workers, POSIX fan-out/join, and isolated goals, checks, and evidence</span></div>
             <div class="cap-row"><strong>Learning</strong><span>Hone proposals admitted from verified recovery</span></div>
             <div class="cap-row"><strong>Governance</strong><span>Exact patches, May approval, Git apply, validation, rollback</span></div>
           </article>
@@ -824,8 +842,8 @@
   </main>
 
   <footer class="shell">
-    <span>Agent is glue, never a second implementation of the tools it composes.</span>
-    <span class="mono">inspect → constrain → verify → learn</span>
+    <span>A digital worker, fluent in Unix, accountable to evidence.</span>
+    <span class="mono">compose → execute → replay → verify</span>
   </footer>
 
   <script>
