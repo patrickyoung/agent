@@ -27,7 +27,9 @@ For the architecture at a glance, open the
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
 capability, and identifies ideas Bench can borrow without moving away from
-Unix composition.
+Unix composition. [MCP, the Unix way](MCP.md) gives the concrete design for
+using the complete MCP surface through filters and capability directories
+without putting an MCP runtime inside Ply or Agent.
 
 Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
 Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
