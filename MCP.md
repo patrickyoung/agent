@@ -10,6 +10,22 @@ The boundary is simple:
 That preserves both systems. MCP servers remain usable at their complete
 protocol boundary. Bench workers continue to see a Unix machine.
 
+## Implementation
+
+The first edge release now lives in
+[`patrickyoung/mcp`](https://github.com/patrickyoung/mcp). It implements the
+modern stateless stdio transport, exact result preservation, bounded input and
+output, explicit progress and subscription streams, honest exit 125 effect
+semantics, process-group cleanup, paginated catalogues, staged folder
+generation, descriptor-digest admission, runtime verification, executable
+Tools and Prompts, exact admitted Resource readers, explicit MRTR continuation,
+and extension Task requests.
+
+Streamable HTTP and credential-helper authorization, safe Resource Template
+expansion, binary unpacking, Registry proposals, and the reverse `mcpserve`
+adapter remain later slices. They do not require a change to the boundary
+described here.
+
 ## Why the current direction is right
 
 Ply's `contrib/mcpbox` already proves the central idea: `tools/list` is a
@@ -285,8 +301,8 @@ prompt installer, and second trace format.
 7. Add `mcpserve` after the consuming edge is proven. Export only explicitly
    described capability directories.
 
-The first release should be deliberately narrow: stdio discovery, paginated
-tool listing, exact tool calls, honest unknown-effect handling, and a rebuilt
+The first release is deliberately narrow: stdio discovery, paginated
+catalogues, exact requests, honest unknown-effect handling, and a rebuilt
 `mcpbox`. That slice establishes the hardest invariant while keeping the final
 architecture open to every current MCP primitive and extension.
 
