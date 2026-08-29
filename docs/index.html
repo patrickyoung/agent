@@ -642,12 +642,14 @@
       <div class="hero-copy">
         <p class="eyebrow">Capability by composition</p>
         <h1>An agent you can inspect, constrain, and prove.</h1>
-        <p class="hero-lede"><strong>Agent turns a durable goal into a verified outcome.</strong> It stays small by composing focused Bench tools for context, intelligence, work structure, confinement, evidence, learning, and human approval.</p>
+        <p class="hero-lede"><strong>Agent turns a durable goal into a verified outcome.</strong> It stays small by composing focused Bench tools for context, intelligence, work structure, confinement, evidence, learning, human approval, conversation continuity, and optional process supervision.</p>
         <div class="principles" aria-label="Core principles">
           <span class="pill">the goal drives the work</span>
           <span class="pill">files are the interface</span>
           <span class="pill">code decides “done”</span>
           <span class="pill">authority comes from the caller</span>
+          <span class="pill">conversation resumes by name</span>
+          <span class="pill">MCP tools become programs</span>
         </div>
         <div class="actions">
           <a class="button" href="#loop">See how it works ↓</a>
@@ -657,7 +659,7 @@
 
       <div class="terminal-wrap" aria-label="Example Agent run">
         <div class="terminal">
-          <div class="terminal-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>support-chief — agent run</div>
+          <div class="terminal-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>support-chief — checkpointed run</div>
           <pre><span class="prompt">$</span> agent show support-chief
 <span class="dim">goal</span>       Resolve the support queue
 <span class="dim">skills</span>     triage, response-style
@@ -665,12 +667,13 @@
 <span class="dim">authority</span>  writes: work/ state/
              network: denied
 
-<span class="prompt">$</span> agent run support-chief
+<span class="prompt">$</span> agent run -checkpoint queue support-chief
 <span class="cyan">brief</span>  loaded definition + 2 skills
 <span class="yellow">ply</span>    structuring work against check…
 <span class="cyan">ask</span>    reasoning through a solution
 <span class="ok">✓ check accepted</span>
-<span class="dim">evidence saved to .agent/runs/</span></pre>
+<span class="dim">conversation .agent/checkpoints/queue.current</span>
+<span class="dim">evidence     .agent/runs/</span></pre>
         </div>
       </div>
     </section>
@@ -681,7 +684,7 @@
           <p class="section-kicker">01 / The loop</p>
           <div>
             <h2>Goals drive outcomes. Ply gives intelligence a way to get there.</h2>
-            <p class="section-intro"><code>GOAL.md</code> holds the desired outcome steady. Ply provides the disciplined work/check/retry structure. Inside each attempt, Ask supplies the model intelligence that works on a solution.</p>
+            <p class="section-intro"><code>GOAL.md</code> holds the desired outcome steady. Ply provides the disciplined work/check/retry structure and can advance one named Ask-session checkpoint. Inside each attempt, Ask supplies the model intelligence that works on a solution.</p>
           </div>
         </div>
 
@@ -701,7 +704,7 @@
         <ol class="loop reveal">
           <li class="loop-card"><span class="step-no">01</span><h3>Aim</h3><p>The durable <strong>goal</strong> defines the outcome; rules, persona, plan, and memory shape the work.</p></li>
           <li class="loop-card"><span class="step-no">02</span><h3>Compose</h3><p><strong>Agent + Brief</strong> validate the home and load only the relevant context and skills.</p></li>
-          <li class="loop-card"><span class="step-no">03</span><h3>Solve</h3><p><strong>Ply</strong> structures the loop; <strong>Ask</strong> supplies intelligence for each solution attempt.</p></li>
+          <li class="loop-card"><span class="step-no">03</span><h3>Solve</h3><p><strong>Ply</strong> structures the loop and preserves a named conversation; <strong>Ask</strong> supplies intelligence for each solution attempt.</p></li>
           <li class="loop-card"><span class="step-no">04</span><h3>Confine</h3><p><strong>Cage</strong> limits writes to <code>work/</code> and <code>state/</code>; network is off by default.</p></li>
           <li class="loop-card"><span class="step-no">05</span><h3>Verify</h3><p>The home’s executable <strong><code>bin/check</code></strong> accepts or rejects the result—not model prose.</p></li>
           <li class="loop-card"><span class="step-no">06</span><h3>Remember</h3><p><strong>Trail, Hone, and May</strong> make evidence browsable and change deliberate.</p></li>
@@ -727,17 +730,19 @@
         <div class="components">
           <article class="component agent-card reveal"><div class="component-top"><h3>agent</h3><span>⌘</span></div><div class="component-role">compiler + controller</div><p>Validates the directory, assembles the run, exposes exact composition, and keeps definition, mutable work, and evidence separate.</p><span class="component-tag">scaffold · show · run · tick</span></article>
           <article class="component reveal"><div class="component-top"><h3>brief</h3><span>◫</span></div><div class="component-role">context</div><p>Finds, validates, and prints the relevant written procedures and Agent Skills. It never calls a model.</p><span class="component-tag">rules · skills · selection</span></article>
-          <article class="component reveal"><div class="component-top"><h3>ply</h3><span>↻</span></div><div class="component-role">structure for progress</div><p>Gives intelligence a disciplined way to pursue the goal: frame an attempt, run the external check, return feedback, and retry.</p><span class="component-tag">goal · attempt · check · retry</span></article>
+          <article class="component reveal"><div class="component-top"><h3>ply</h3><span>↻</span></div><div class="component-role">structure for progress</div><p>Frames attempts, runs the external check, returns feedback, retries, and durably advances one named Ask-session pointer across restarts and compaction.</p><span class="component-tag">attempt · check · retry · resume</span></article>
           <article class="component reveal"><div class="component-top"><h3>ask</h3><span>✦</span></div><div class="component-role">intelligence + sessions</div><p>Calls the selected model to reason through each solution attempt and records replayable turns. It does not own the goal or completion.</p><span class="component-tag">reason · adapt · record</span></article>
           <article class="component reveal"><div class="component-top"><h3>cage</h3><span>▦</span></div><div class="component-role">authority boundary</div><p>Confines model-authored actions at the OS boundary. A toolbox suggests what to use; Cage controls what can happen.</p><span class="component-tag">writes · network · process</span></article>
           <article class="component reveal"><div class="component-top"><h3>trail</h3><span>⌁</span></div><div class="component-role">evidence browser</div><p>Lists, searches, windows, and replay-checks prior runs without inventing another session format or writer.</p><span class="component-tag">history · lineage · integrity</span></article>
           <article class="component reveal"><div class="component-top"><h3>hone</h3><span>◇</span></div><div class="component-role">reviewed learning</div><p>Turns a verified recovery into a proposed procedure update. Learning is explicit, inspectable, and never automatic.</p><span class="component-tag">prepare · show · admit</span></article>
           <article class="component reveal"><div class="component-top"><h3>may</h3><span>◎</span></div><div class="component-role">human authorization</div><p>Binds one human decision to exact proposed bytes and current state before a definition change can be applied.</p><span class="component-tag">review · decide · receipt</span></article>
+          <article class="component reveal"><div class="component-top"><h3>tend</h3><span>◷</span></div><div class="component-role">durable process supervisor</div><p>Supervises exact argv with local SQLite state, durable signals and timers, immutable output evidence, and explicit resolution when a started effect is uncertain.</p><span class="component-tag">submit · wait · work · resolve</span></article>
+          <article class="component reveal"><div class="component-top"><h3>mcpbox</h3><span>⇄</span></div><div class="component-role">Ply contrib MCP adapter</div><p>Discovers an MCP server’s tool catalogue and JSON Schemas, then writes one help-bearing, type-aware Unix program per capability for a Ply toolbox.</p><span class="component-tag">discover · compile · allowlist · call</span></article>
         </div>
 
         <div class="composition-note reveal">
           <strong>The refusals are features.</strong>
-          <span>Ask has no tools. Ply has no model. Brief does not decide. Cage does not infer intent. Each narrow contract prevents invisible authority from accumulating in one opaque runtime.</span>
+          <span>Ask has no tools. Ply has no model or hidden MCP session. Brief does not decide. Cage does not infer intent. Tend does not claim exactly-once effects. MCP transport stays in a bridge while <code>mcpbox</code> turns approved capabilities into ordinary programs. Each narrow contract prevents invisible authority from accumulating in one opaque runtime.</span>
         </div>
       </div>
     </section>
@@ -769,6 +774,7 @@
               </div>
               <div class="tree-group evidence">
                 <div class="tree-line"><span class="tree-path">.agent/runs/</span><span class="tree-note">sessions + verifier receipts</span></div>
+                <div class="tree-line"><span class="tree-path">.agent/checkpoints/</span><span class="tree-note">locked current-session pointers</span></div>
                 <div class="tree-line"><span class="tree-path">.agent/learning/</span><span class="tree-note">reviewed lesson evidence</span></div>
                 <div class="tree-line"><span class="tree-path">.agent/amendments/</span><span class="tree-note">approved change receipts</span></div>
               </div>
@@ -779,7 +785,9 @@
             <div class="card-label">Capability comes from…</div>
             <div class="cap-row"><strong>Understanding the job</strong><span>Definition files composed through Brief</span></div>
             <div class="cap-row"><strong>Model judgment</strong><span>Ask, with provider and session ownership</span></div>
-            <div class="cap-row"><strong>Persistence</strong><span>Ply retrying against an executable check</span></div>
+            <div class="cap-row"><strong>Conversation continuity</strong><span>Ply checkpoints resuming the same Ask session after interruption or compaction</span></div>
+            <div class="cap-row"><strong>Process continuity</strong><span>Optional Tend supervision around any exact command, including an Agent run</span></div>
+            <div class="cap-row"><strong>MCP capabilities</strong><span><code>mcpbox</code> compiling discovered tools into an enforced Ply directory allowlist</span></div>
             <div class="cap-row"><strong>Safe action</strong><span>Agent tools inside the Cage boundary</span></div>
             <div class="cap-row"><strong>Cheap recurring work</strong><span><code>bin/wake</code> stopping quiet ticks before a model call</span></div>
             <div class="cap-row"><strong>Specialization</strong><span>Nested homes with isolated goals, checks, and evidence</span></div>
@@ -791,7 +799,7 @@
         <div class="authority">
           <article class="authority-card allowed reveal">
             <h3>The worker can…</h3>
-            <ul><li>Read its definition and selected skills</li><li>Use the host tool catalogue</li><li>Write deliverables under <code>work/</code></li><li>Keep mutable facts under <code>state/</code></li><li>Propose a definition patch for review</li></ul>
+            <ul><li>Read its definition and selected skills</li><li>Use the host tool catalogue and approved MCP tool programs</li><li>Write deliverables under <code>work/</code></li><li>Keep mutable facts under <code>state/</code></li><li>Propose a definition patch for review</li></ul>
           </article>
           <article class="authority-card denied reveal">
             <h3>The worker cannot grant itself…</h3>
@@ -809,7 +817,7 @@
             <h2>Build the worker you can explain.</h2>
             <p>Scaffold a home, write the durable goal, make completion executable, and inspect the exact composition before the first model call.</p>
           </div>
-          <div class="command-box" id="commands"><button class="copy" type="button" data-copy aria-label="Copy commands">copy</button><span>$ cd agent &amp;&amp; just install</span><br><span>$ agent new support-chief</span><br><span>$ $EDITOR support-chief/GOAL.md</span><br><span>$ $EDITOR support-chief/bin/check</span><br><span>$ agent check support-chief</span><br><span>$ agent show support-chief</span><br><span>$ agent run support-chief</span></div>
+          <div class="command-box" id="commands"><button class="copy" type="button" data-copy aria-label="Copy commands">copy</button><span>$ cd agent &amp;&amp; just install</span><br><span>$ agent new support-chief</span><br><span>$ $EDITOR support-chief/GOAL.md</span><br><span>$ $EDITOR support-chief/bin/check</span><br><span>$ agent check support-chief</span><br><span>$ agent show support-chief</span><br><span>$ agent run -checkpoint main support-chief</span></div>
         </div>
       </div>
     </section>
@@ -830,7 +838,7 @@
         '$EDITOR support-chief/bin/check',
         'agent check support-chief',
         'agent show support-chief',
-        'agent run support-chief'
+        'agent run -checkpoint main support-chief'
       ].join('\n');
       try {
         if (navigator.clipboard?.writeText) {

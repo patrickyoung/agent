@@ -193,6 +193,13 @@ and offline tests. `check` only needs Brief when `skills/` contains a skill.
 `just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
 beside the other standalone Bench filters.
 
+The Bench `0.9.0` suite also ships Tend as an independent local process
+supervisor. It is not an Agent dependency: compose it outside an exact
+`agent run -checkpoint NAME HOME` invocation when the whole process needs
+durable submission, waits, output evidence, and conservative crash recovery.
+Ply's `contrib/mcpbox` provides the MCP edge in the same style by compiling a
+server's discovered tools into one allowlisted Unix program per capability.
+
 `just eval` runs the frozen representative-home corpus in `eval/corpus/`.
 It proves already-complete re-entry makes no model call, quiet heartbeats stop
 before resolving Ply, broken wake protocols return 2, nested homes validate
@@ -212,6 +219,6 @@ prepare/show/admit exact reviewed lesson bytes, browse replay history without
 writing it, and apply one exact human-approved definition patch with rollback
 and evidence. Proposal bytes and approval actions are also inspectable through
 a bounded, read-only public command.
-Pinned-suite packaging remains a
-follow-on slice; Bench has a core interactive home view and exposes every
-Agent command through its headless boundary.
+Bench suite `0.9.0` pins Agent, Ply's checkpoint support, Tend, and the other
+public filters as one tested install. Bench has a core interactive home view
+and exposes every Agent command through its headless boundary.
