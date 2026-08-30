@@ -7,7 +7,8 @@ tmp=$(mktemp -d "${TMPDIR:-/tmp}/agent-eval.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 cp -R "$root/eval/corpus" "$tmp/corpus"
 
-for program in brief ply cage trail ask; do
+ply_program=${AGENT_PLY:-ply}
+for program in brief "$ply_program" cage trail ask; do
 	command -v "$program" >/dev/null 2>&1 || {
 		printf 'agent eval: %s is required\n' "$program" >&2
 		exit 2
@@ -43,7 +44,7 @@ done_home=$tmp/corpus/done
 show_metrics done "$done_home"
 AGENT_BRIEF=brief "$agent" check "$done_home" >/dev/null 2>"$tmp/done.check.stderr"
 rm -f "$model_marker"
-ASK=$fake_ask AGENT_EVAL_MODEL_MARKER=$model_marker AGENT_BRIEF=brief AGENT_PLY=ply AGENT_CAGE=cage \
+ASK=$fake_ask AGENT_EVAL_MODEL_MARKER=$model_marker AGENT_BRIEF=brief AGENT_PLY="$ply_program" AGENT_CAGE=cage \
 	"$agent" run "$done_home" >/dev/null 2>"$tmp/done.run.stderr"
 [ ! -e "$model_marker" ] || {
 	printf 'agent eval: already-done re-entry called Ask\n' >&2

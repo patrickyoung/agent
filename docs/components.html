@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The thirteen Bench programs, the Unix capabilities they compose, and precise comparisons with prominent 2026 agent systems.">
+  <meta name="description" content="The sixteen Bench components, the Unix capabilities their eighteen commands compose, and precise comparisons with prominent 2026 agent systems.">
   <title>Bench — a Unix agent system in 2026</title>
   <style>
     :root {
@@ -104,16 +104,16 @@
 <body>
   <header class="shell nav">
     <a class="brand" href="index.html"><span class="brand-mark">b</span><span>bench <span style="color:var(--muted)">/ component map</span></span></a>
-    <nav class="nav-links" aria-label="Site navigation"><a href="index.html">Agent overview</a><a href="#systems">Unix capabilities</a><a href="#map">13 programs</a><a href="#industry">Industry stack</a><a href="compare.html">Full 2026 landscape →</a></nav>
+    <nav class="nav-links" aria-label="Site navigation"><a href="index.html">Agent overview</a><a href="#systems">Unix capabilities</a><a href="#map">16 components</a><a href="#industry">Industry stack</a><a href="compare.html">Full 2026 landscape →</a></nav>
   </header>
 
   <main>
     <section class="hero">
       <div class="shell">
-        <p class="eyebrow">Bench suite 0.9.0 · rescanned 28 Aug 2026</p>
-        <h1>A complete agent system, shaped like Unix.</h1>
-        <p class="lede"><strong>Bench is not a framework, SDK, or hosted platform.</strong> It is thirteen programs whose contracts compose through argv, streams, files, signals, processes, and exit status. This map compares the capabilities—not the packaging—with prominent 2026 systems.</p>
-        <div class="meta"><span>13 released components</span><span>13 public commands + 1 private adapter</span><span>primary documentation</span><span>no feature-score arithmetic</span></div>
+        <p class="eyebrow">Bench suite 0.13.0 · rescanned 30 Aug 2026</p>
+        <h1>A strong agent core, shaped like Unix.</h1>
+        <p class="lede"><strong>Bench is not a framework, SDK, or hosted platform.</strong> It is sixteen pinned components whose eighteen public commands compose through argv, streams, files, signals, processes, and exit status. This map compares the capabilities—not the packaging—with prominent 2026 systems.</p>
+        <div class="meta"><span>16 pinned components</span><span>18 public commands + 1 private adapter</span><span>primary documentation</span><span>no feature-score arithmetic</span></div>
       </div>
     </section>
 
@@ -126,7 +126,7 @@
 
     <section id="systems">
       <div class="shell">
-        <div class="section-head"><p class="kicker">The composed system</p><div><h2>The important capabilities live between programs.</h2><p class="section-intro">Looking at one executable at a time misses the system Bench forms. These are native Unix compositions already present in 0.9.0.</p></div></div>
+        <div class="section-head"><p class="kicker">The composed system</p><div><h2>The important capabilities live between programs.</h2><p class="section-intro">Looking at one executable at a time misses the system Bench forms. These are native Unix compositions present in 0.13.0; they are selected by phase, not all loaded into every run.</p></div></div>
         <div class="systems">
           <article class="system"><span class="kicker" style="color:#8fd4d7">Event spine + full replay</span><h3>Two event-sourced replay domains, one evidence path</h3><p>Ask folds append-only JSONL events back into the exact normalized request at any request sequence. It verifies contiguous events, request digests, inline Context snapshots, provider-replayable reasoning blocks, and sealed program records for checks, approvals, confinement, contracts, and results. Tend independently replays its immutable lifecycle events into the current job projection and verifies that projection plus every digest-bound attempt and check artifact. Trail reads the same Ask events; there is no shadow trace format.</p><span class="boundary">Precise boundary: replay reconstructs and verifies recorded conversation/request state and Tend controller state. It does not re-perform an external effect or prove that a recorded producer told the truth.</span></article>
           <article class="system"><span class="kicker">Evaluation</span><h3>A check is an evaluator, and its verdict is evidence</h3><p>Ply runs an operator-owned check before work and after every candidate, returns rejection evidence to the model, and seals every accepted, rejected, or broken verdict into the replayable session. Draft mutation-tests checks. Bench ships a frozen 60-case routing conformance corpus; Agent ships a lifecycle corpus. Exact replay makes any archived run stable input to later code, model, safety, cost, or regression evaluators.</p><span class="boundary">Not bundled: a hosted experiment catalogue, aggregate statistics, annotation queues, or comparison dashboard.</span></article>
@@ -139,7 +139,7 @@
 
     <section id="map">
       <div class="shell">
-        <div class="section-head"><p class="kicker">The released manifest</p><div><h2>Thirteen programs, composed as one Unix system.</h2><p class="section-intro">The rows follow Bench 0.9.0. “Bench position” names both its native guarantee and the different boundary supplied by a framework or hosted system.</p></div></div>
+        <div class="section-head"><p class="kicker">The released manifest</p><div><h2>Fourteen core components plus two protocol edges.</h2><p class="section-intro">The rows follow Bench 0.13.0. “Bench position” names both its native guarantee and the different boundary supplied by a framework or hosted system. MCP contributes three public commands and OAuth one, producing eighteen commands from sixteen components.</p></div></div>
         <div class="map" role="table" aria-label="Bench components and common 2026 reference solutions">
           <div class="map-head" role="row"><div>Bench component</div><div>Exact job</div><div>Common 2026 reference points</div><div>Bench position and difference</div></div>
 
@@ -147,7 +147,7 @@
 
           <article class="component-row" role="row"><div class="component-name"><strong>ask</strong><span class="role">model + event boundary</span></div><div class="contract">Puts one question through a selected model and writes an append-only event stream containing exact messages, attachments, evidence, normalized request metadata, streamed reasoning/text, retries, usage, outcomes, and sealed program records.</div><div class="refs">The <a href="https://developers.openai.com/api/reference/cli/resources/responses/methods/create">OpenAI Responses API</a> and <a href="https://docs.anthropic.com/en/api/messages">Anthropic Messages API</a> provide model calls and hosted continuation; the <a href="https://openai.github.io/openai-agents-python/tracing/">OpenAI Agents SDK trace system</a> records agent spans.</div><div class="difference">Ask goes beyond “session storage”: <code>replay -step</code> reconstructs the exact request from the fold, and <code>replay -check</code> verifies every request digest, sequence, evidence manifest, and sealed record. It is local and provider-neutral; it deliberately has no tools or loop.<br><span class="fit native">native verified event replay</span></div></article>
 
-          <article class="component-row" role="row"><div class="component-name"><strong>brief</strong><span class="role">procedure catalogue</span></div><div class="contract">Finds, validates, selects, and prints Agent Skills. It does not run a skill, install it, or invoke a model.</div><div class="refs">The open <a href="https://agentskills.io/specification">Agent Skills specification</a>, plus skills in <a href="https://code.claude.com/docs/en/features-overview">Claude Code</a> and Codex, are the 2026 convention for reusable on-demand procedures.</div><div class="difference">Brief implements progressive disclosure as <code>ls</code>, selection, and <code>cat</code>. Modern harnesses usually load and execute skills inside the agent runtime; Brief keeps the catalogue independently inspectable.<br><span class="fit native">native standard</span></div></article>
+          <article class="component-row" role="row"><div class="component-name"><strong>brief</strong><span class="role">procedure catalogue</span></div><div class="contract">Finds, validates, selects, and prints Agent Skills. It does not run or install a skill; deterministic selection is local, while explicit <code>-ask</code> borrows the separate Ask process.</div><div class="refs">The open <a href="https://agentskills.io/specification">Agent Skills specification</a>, plus skills in <a href="https://code.claude.com/docs/en/features-overview">Claude Code</a> and Codex, are the 2026 convention for reusable on-demand procedures.</div><div class="difference">Brief implements progressive disclosure as <code>ls</code>, selection, and <code>cat</code>. Modern harnesses usually load and execute skills inside the agent runtime; Brief keeps the catalogue and optional selector evidence independently inspectable.<br><span class="fit native">native standard</span></div></article>
 
           <article class="component-row" role="row"><div class="component-name"><strong>ply</strong><span class="role">process agent loop</span></div><div class="contract">Lets a model run one complete shell action per turn, returns the observed result, checks the candidate with an external program, seals the verdict, resumes named Ask checkpoints, and can invoke nested Ply workers as ordinary tools.</div><div class="refs"><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph</a> and the <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a> package loops, tools, handoffs, guardrails, sessions, and orchestration as libraries.</div><div class="difference">Ply supplies the same core agent loop through POSIX processes. The toolbox is <code>PATH</code>, completion is exit status, workflows are shell, subagents are processes, and the entire run shares Ask’s verified event history. What it does not supply is an in-process graph object, realtime application API, or hosted trace viewer.<br><span class="fit native">native Unix agent loop</span></div></article>
 
@@ -158,6 +158,8 @@
           <article class="component-row" role="row"><div class="component-name"><strong>cage</strong><span class="role">OS action boundary</span></div><div class="contract">Runs one command with caller-selected writable roots and network policy using the host operating system. It has no daemon, image, or policy language.</div><div class="refs"><a href="https://docs.docker.com/ai/sandboxes/">Docker Sandboxes</a> and <a href="https://e2b.dev/">E2B</a> are prominent agent sandboxes using isolated microVM environments, managed templates, credentials, and longer-lived sessions.</div><div class="difference">Cage provides a cheap fail-closed boundary for ordinary local programs. It is not a container or microVM: the child may still read the host filesystem and inherited environment unless an outer deployment hides them.<br><span class="fit narrow">native, lighter boundary</span></div></article>
 
           <article class="component-row" role="row"><div class="component-name"><strong>may</strong><span class="role">exact human authorization</span></div><div class="contract">Binds a human decision to the exact bytes of one action. Decisions can park durably, and one matching grant is atomically spent once.</div><div class="refs"><a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop">LangChain HITL</a> and <a href="https://openai.github.io/openai-agents-python/human_in_the_loop/">OpenAI Agents SDK approvals</a> pause tool execution so a person can approve, edit, or reject it.</div><div class="difference">May has no graph or agent state; its stronger local property is the public digest over exact job/action bytes and a single-use grant. Rich frameworks offer editable decisions and in-context continuation.<br><span class="fit narrow">native exact-byte gate</span></div></article>
+
+          <article class="component-row" role="row"><div class="component-name"><strong>action</strong><span class="role">controlled effect boundary</span></div><div class="contract">Inspects and executes strict connector proposals through caller-selected policy and exact May authorization, then emits effect receipts without granting itself authority.</div><div class="refs">Tool runtimes in the <a href="https://openai.github.io/openai-agents-python/tools/">OpenAI Agents SDK</a> and <a href="https://modelcontextprotocol.io/docs/learn/server-concepts">MCP</a> expose external operations behind structured calls.</div><div class="difference">Action keeps proposal, policy, approval, connector execution, and receipt as ordinary controller processes. Its conservative uncertain-effect exit remains distinct from success; a future VM credential proxy must preserve this boundary rather than placing long-lived secrets in the worker.<br><span class="fit native">native controlled-effect seam</span></div></article>
 
           <article class="component-row" role="row"><div class="component-name"><strong>hone</strong><span class="role">procedural memory</span></div><div class="contract">Finds replay-verified fail→pass recoveries, derives a narrow lesson, records the wording session, prepares exact proposed skill bytes, and admits them only after replay and separate review.</div><div class="refs"><a href="https://docs.letta.com/tutorials/attaching-detaching-blocks/">Letta memory blocks</a> and <a href="https://docs.langchain.com/oss/python/concepts/memory">LangGraph memory</a> represent automated semantic, episodic, and procedural memory stores.</div><div class="difference">Hone is not a lesser memory system; it is a stricter procedural one. It requires evidence that the old behavior failed and the new behavior passed, retains provenance, and separates proposal from admission. It omits automatic extraction/retrieval and similarity search by policy, not because Bench lacks durable memory.<br><span class="fit native">native verified procedural memory</span></div></article>
 
@@ -188,11 +190,11 @@
 
     <section id="readout">
       <div class="shell">
-        <div class="section-head"><p class="kicker">What the map says</p><div><h2>Bench is complete at the Unix-system boundary.</h2><p class="section-intro">Replay, evaluation, memory, multi-agent work, workflows, retrieval, authority, and durable execution are already present. The difference is their unit of composition and deployment boundary—not an absence of those capabilities.</p></div></div>
+        <div class="section-head"><p class="kicker">What the map says</p><div><h2>Bench has a strong Unix semantic core, not a complete worker boundary.</h2><p class="section-intro">Replay, evaluation, memory, multi-agent work, workflows, retrieval, authority, and durable execution are present as phase-scoped compositions. A sealed VM execution plane, credentialless workload identity, external capability lock, and unified operator surface remain real product work.</p></div></div>
         <div class="readout">
           <article><span class="kicker">Native today</span><h3>Replay, evals, memory, teams, workflows</h3><p>Ask and Tend provide two verified replay domains. Checks, sealed verdicts, mutation testing, and frozen corpora provide evaluation. Agent, Ask, Hone, Context, and Trail provide distinct kinds of memory. Nested homes and processes provide teams. POSIX plus Tend provides workflows.</p></article>
           <article><span class="kicker">Different by design</span><h3>The operating system is the framework</h3><p>Programs are capabilities; <code>PATH</code> is the tool registry; byte streams are the protocol; files are durable objects; exit status is control flow; shell, Make, schedulers, signals, and process groups are orchestration. SQLite is used narrowly where Tend needs transactional coordination.</p></article>
-          <article><span class="kicker">Precisely outside</span><h3>Services above one Unix host</h3><p>No multi-host worker fabric, automatic journal of arbitrary in-process calls, hosted realtime/API plane, managed vector index, semantic citation judge, unified span dashboard, or complete read-and-secret isolation. Those are genuine outer boundaries—not evidence that Bench lacks agents, memory, evaluation, replay, or workflows.</p></article>
+          <article><span class="kicker">Precisely outside</span><h3>The sealed machine and services above one host</h3><p>No shipped Linux microVM broker, workload-identity/credential proxy, signed effective-capability lock, multi-host worker fabric, managed vector index, semantic citation judge, or unified span dashboard. Those are genuine outer boundaries—not evidence that Bench lacks agents, memory, evaluation, replay, or workflows.</p></article>
         </div>
       </div>
     </section>
@@ -206,7 +208,7 @@
 
     <section id="sources">
       <div class="shell">
-        <div class="section-head"><p class="kicker">Primary sources</p><div><h2>Current documentation, not category folklore.</h2><p class="section-intro">Bench claims come from the installed 0.9.0 manifest and the component contracts. Reference-system claims come from the linked maintainers’ documentation.</p></div></div>
+        <div class="section-head"><p class="kicker">Primary sources</p><div><h2>Current documentation, not category folklore.</h2><p class="section-intro">Bench claims come from the pinned 0.13.0 manifest and the component contracts. Reference-system claims come from the linked maintainers’ documentation.</p></div></div>
         <ol class="sources">
           <li><a href="https://openai.com/index/introducing-the-codex-app/">OpenAI — Codex app</a></li>
           <li><a href="https://code.claude.com/docs/en/overview">Anthropic — Claude Code</a></li>
@@ -238,6 +240,6 @@
     </section>
   </main>
 
-  <footer class="shell"><span>Bench 0.9.0 component map · 28 Aug 2026</span><span style="font-family:var(--mono)">intent → evidence → authority → proof → durability</span></footer>
+  <footer class="shell"><span>Bench 0.13.0 component map · 30 Aug 2026</span><span style="font-family:var(--mono)">intent → evidence → authority → proof → durability</span></footer>
 </body>
 </html>

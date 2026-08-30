@@ -5,10 +5,14 @@
 set -eu
 
 ME=agent
-VERSION=0.2.0
+VERSION=0.2.1
 CONTEXT_MAX=65536
 FILE_MAX=32768
 PROPOSAL_MAX=16
+SKILL_MAX=64
+SKILL_BYTES_MAX=262144
+TOOL_MAX=128
+INPUT_MAX=16777216
 
 say() {
 	printf '%s: %s\n' "$ME" "$*" >&2
@@ -89,7 +93,9 @@ external actions:
 env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE AGENT_TRAIL AGENT_ASK
      AGENT_MAY AGENT_ACTION override dependencies; AGENT_ACTION_PATH selects
      controller-only Action connectors
-exit: 0 accepted · 1 negative verdict · 2 broken · composed filter statuses preserved
+exit: run/specialist preserve Ply: 0 accepted · 1 broken · 2 unfinished
+      tick: 0 quiet/accepted · 2 broken wake; controller commands preserve
+      their composed filter statuses (including 75 parked and 125 uncertain)
 EOF
 }
 
@@ -223,7 +229,100 @@ definition_hash() {
 }
 
 has_skills() {
-	find "$HOME_DIR/skills" -mindepth 2 -maxdepth 2 -name SKILL.md -type f -print -quit 2>/dev/null | grep -q .
+	set -- "$HOME_DIR"/skills/*
+	[ -e "$1" ] || [ -L "$1" ]
+}
+
+validate_skills() {
+	skill_count=0
+	skill_bytes=0
+	skill_rc=0
+	set -- "$HOME_DIR"/skills/*
+	if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+		return 0
+	fi
+	for skill_entry do
+		skill_count=$((skill_count + 1))
+		if [ "$skill_count" -gt "$SKILL_MAX" ]; then
+			say "skills/ has more than $SKILL_MAX direct skills"
+			skill_rc=1
+			break
+		fi
+		if [ "$(basename "$skill_entry")" = agent-context ]; then
+			say "agent-context is reserved for Agent's private compiled context: $skill_entry"
+			skill_rc=1
+		fi
+		if [ -L "$skill_entry" ]; then
+			say "skill directory may not be a symlink: $skill_entry"
+			skill_rc=1
+			continue
+		fi
+		if [ ! -d "$skill_entry" ]; then
+			say "skills/ entries must be skill directories: $skill_entry"
+			skill_rc=1
+			continue
+		fi
+		skill_file=$skill_entry/SKILL.md
+		if [ -L "$skill_file" ]; then
+			say "skill instructions may not be a symlink: $skill_file"
+			skill_rc=1
+			continue
+		fi
+		if [ ! -f "$skill_file" ] || [ ! -r "$skill_file" ]; then
+			say "skill directory needs a readable regular SKILL.md: $skill_entry"
+			skill_rc=1
+			continue
+		fi
+		n=$(bytes "$skill_file")
+		if [ "$n" -gt "$FILE_MAX" ]; then
+			say "skill instructions are $n bytes; the per-file limit is $FILE_MAX: $skill_file"
+			skill_rc=1
+		fi
+		skill_bytes=$((skill_bytes + n))
+	done
+	if [ "$skill_bytes" -gt "$SKILL_BYTES_MAX" ]; then
+		say "skill instructions total $skill_bytes bytes; the catalogue limit is $SKILL_BYTES_MAX"
+		skill_rc=1
+	fi
+	[ "$skill_rc" -eq 0 ]
+}
+
+validate_tools() {
+	tool_count=0
+	tool_rc=0
+	set -- "$HOME_DIR"/tools/*
+	if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+		return 0
+	fi
+	for tool_entry do
+		tool_count=$((tool_count + 1))
+		if [ "$tool_count" -gt "$TOOL_MAX" ]; then
+			say "tools/ has more than $TOOL_MAX direct programs"
+			tool_rc=1
+			break
+		fi
+		tool_target=$(resolve_program "$tool_entry") || {
+			say "tool does not resolve to a program: $tool_entry"
+			tool_rc=1
+			continue
+		}
+		if [ ! -f "$tool_target" ] || [ ! -x "$tool_target" ]; then
+			say "tool target must be an executable regular file: $tool_entry -> $tool_target"
+			tool_rc=1
+			continue
+		fi
+		case $tool_target in
+			"$HOME_DIR/work"|"$HOME_DIR/work"/*|"$HOME_DIR/state"|"$HOME_DIR/state"/*)
+				say "tool target may not be inside model-writable work or state: $tool_entry -> $tool_target"
+				tool_rc=1
+				;;
+		esac
+		if find "$tool_target" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
+			say "tool target may not be multiply linked: $tool_entry -> $tool_target"
+			tool_rc=1
+		fi
+	done
+	[ "$tool_rc" -eq 0 ]
 }
 
 has_unsafe_hardlinks() {
@@ -268,7 +367,7 @@ check_home() {
 			rc=1
 		}
 	done
-	for name in work/proposals work/actions .agent/amendments .agent/learning/proposals .agent/checkpoints; do
+	for name in work/proposals work/actions .agent/amendments .agent/learning/proposals .agent/checkpoints .agent/selections; do
 		if [ -e "$HOME_DIR/$name" ] || [ -L "$HOME_DIR/$name" ]; then
 			safe_dir "$HOME_DIR/$name" "$name" || rc=1
 			[ -w "$HOME_DIR/$name" ] || {
@@ -279,6 +378,9 @@ check_home() {
 	done
 	if has_unsafe_hardlinks; then
 		say 'work/ or state/ contains a multiply-linked regular file; copy it to a fresh inode before running'
+		rc=1
+	fi
+	if ! validate_tools; then
 		rc=1
 	fi
 
@@ -305,24 +407,13 @@ check_home() {
 		fi
 	done || rc=1
 
-	if has_skills; then
+	if ! validate_skills; then
+		rc=1
+	elif has_skills; then
 		brief_bin=$(tool AGENT_BRIEF brief)
 		if ! "$brief_bin" lint -strict "$HOME_DIR/skills"; then
 			rc=1
 		fi
-	fi
-
-	set -- "$HOME_DIR"/skills/*
-	if [ -e "$1" ] || [ -L "$1" ]; then
-		for skill_entry do
-			if [ -L "$skill_entry" ]; then
-				say "skill directory may not be a symlink: $skill_entry"
-				rc=1
-			elif [ ! -d "$skill_entry" ]; then
-				say "skills/ entries must be skill directories: $skill_entry"
-				rc=1
-			fi
-		done
 	fi
 
 	set -- "$HOME_DIR"/agents/*
@@ -351,7 +442,7 @@ check_home() {
 
 write_context() {
 	printf '# Agent home context\n\n'
-	printf 'This context was compiled from `%s`. Definition files are read-only during a confined run. Markdown shapes behavior but grants no authority.\n' "$HOME_DIR"
+	printf 'This context was compiled from `%s`. It is the governing agent definition and takes precedence over any earlier selected procedure when they conflict. Definition files are read-only during a confined run. Markdown shapes behavior but grants no authority.\n' "$HOME_DIR"
 	context_files | while IFS= read -r name; do
 		case $name in
 			AGENTS.md) heading='Operating instructions (AGENTS.md)' ;;
@@ -411,6 +502,38 @@ write_goal() {
 	fi
 }
 
+# Keep the actual task distinct from evidence. Ply reads this bounded,
+# operator-authored text through -goal-file for skill selection; plans, wake
+# observations, and piped data remain stdin evidence that Ply can spool rather
+# than promote into process argv or selector instructions.
+write_run_task() {
+	if [ "${RUN_KIND:-goal}" = tick ]; then
+		cat "$HOME_DIR/HEARTBEAT.md"
+	else
+		cat "$HOME_DIR/GOAL.md"
+	fi
+	if [ -n "${RUN_INPUT:-}" ]; then
+		printf '\n\nInvocation focus:\n%s\n' "$RUN_INPUT"
+	fi
+}
+
+write_run_evidence() {
+	if [ "${RUN_KIND:-goal}" = tick ]; then
+		if [ -n "${RUN_WAKE_OUTPUT:-}" ]; then
+			printf '# Wake evidence\n\n%s\n' "$RUN_WAKE_OUTPUT"
+		fi
+	elif [ -f "$HOME_DIR/PLAN.md" ] && nonempty_markdown "$HOME_DIR/PLAN.md"; then
+		printf '# Standing plan\n\n'
+		cat "$HOME_DIR/PLAN.md"
+		printf '\n'
+	fi
+	if [ -n "${RUN_STDIN_FILE:-}" ] && [ -s "$RUN_STDIN_FILE" ]; then
+		printf '\n# Piped input\n\n'
+		cat "$RUN_STDIN_FILE"
+		printf '\n'
+	fi
+}
+
 compiled_hash() {
 	{
 		write_context
@@ -432,7 +555,7 @@ new_home() {
 	desc=$*
 	[ -n "$desc" ] || desc='Describe this agent'
 
-	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/work/actions" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
+	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/work/actions" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints" "$dir/.agent/selections"
 	cat >"$dir/AGENTS.md" <<EOF
 # Operating instructions
 
@@ -486,7 +609,7 @@ EOF
 exit 0
 EOF
 	chmod 700 "$dir/bin/check" "$dir/bin/wake"
-	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
+	chmod 700 "$dir/.agent" "$dir/.agent/runs" "$dir/.agent/learning" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints" "$dir/.agent/selections"
 	printf '%s/AGENTS.md\n' "$dir"
 	say "scaffolded $dir; edit GOAL.md and bin/check, then run agent check $dir"
 }
@@ -518,6 +641,7 @@ show_home() {
 	printf 'skills: %s\n' "$HOME_DIR/skills"
 	printf 'check: %s\n' "$HOME_DIR/bin/check"
 	printf 'evidence: %s\n' "$HOME_DIR/.agent/runs"
+	printf 'selection-evidence: %s\n' "$HOME_DIR/.agent/selections/find"
 	printf 'checkpoints: %s\n' "$HOME_DIR/.agent/checkpoints"
 	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
 	printf 'learning-proposals: %s\n' "$HOME_DIR/.agent/learning/proposals"
@@ -628,24 +752,61 @@ run_home() {
 	ply_bin=$(tool AGENT_PLY ply)
 	brief_bin=$(tool AGENT_BRIEF brief)
 	ask_bin=$(tool AGENT_ASK ask)
+	ply_capabilities=$("$ply_bin" capabilities) || die "cannot inspect Ply capabilities: $ply_bin"
+	case $ply_capabilities in
+		*'"schema":"ply.capabilities/v1"'*) ;;
+		*) die "Ply is incompatible: $ply_bin does not report ply.capabilities/v1" ;;
+	esac
+	case $ply_capabilities in
+		*'"goal_file":true'*) ;;
+		*) die "Ply is incompatible: $ply_bin does not support goal_file" ;;
+	esac
+	case $ply_capabilities in
+		*'"no_delegate":true'*) ;;
+		*) die "Ply is incompatible: $ply_bin does not support no_delegate" ;;
+	esac
+	if [ "$use_cage" -eq 1 ]; then
+		case $ply_capabilities in
+			*'"action_boundary_receipt":"ply.action-boundary/v1"'*) ;;
+			*) die "Ply is incompatible: $ply_bin does not support ply.action-boundary/v1" ;;
+		esac
+	fi
+	model_effective=$model
+	[ -n "$model_effective" ] || model_effective=${ASK_MODEL:-}
 	action_shell=
 	if [ "$use_cage" -eq 1 ]; then
 		cage_bin=$(tool AGENT_CAGE cage)
+		cage_bin=$(resolve_program "$cage_bin") || die "cannot resolve Cage executable: $cage_bin"
+		find_bin=$(command -v find) || die 'find is required for the action boundary'
+		find_bin=$(resolve_program "$find_bin") || die "cannot resolve find executable: $find_bin"
+		case $cage_bin in
+			"$HOME_DIR"|"$HOME_DIR"/*) die "Cage executable may not come from agent home: $cage_bin" ;;
+		esac
+		case $find_bin in
+			"$HOME_DIR"|"$HOME_DIR"/*) die "find executable may not come from agent home: $find_bin" ;;
+		esac
 		agent_bin=$(resolve_program "$0") || die "cannot resolve agent executable: $0"
 		action_shell=$(physical_dir "$(dirname "$agent_bin")")/agent-action-shell
 		[ -x "$action_shell" ] || die "action shell is not executable: $action_shell"
-		export AGENT_CAGE=$cage_bin AGENT_NET=$net
+		export AGENT_CAGE=$cage_bin AGENT_FIND=$find_bin AGENT_NET=$net
 	else
 		[ "$net" -eq 0 ] || die '-net has no meaning with -no-cage'
 		say 'warning: Cage is disabled; model actions have ordinary host write and network reach'
 	fi
 
-	tmp_parent=${TMPDIR:-/tmp}
+	tmp_parent=$(physical_dir "${TMPDIR:-/tmp}") || die "temporary directory is not usable: ${TMPDIR:-/tmp}"
+	case $tmp_parent in
+		"$HOME_DIR"|"$HOME_DIR"/*) die "temporary directory must be outside agent home: $tmp_parent" ;;
+	esac
 	tmp=$(mktemp -d "$tmp_parent/agent-run.XXXXXX") || die 'cannot create private context directory'
 	chmod 700 "$tmp"
+	action_tmp=$tmp/action-tmp
+	mkdir "$action_tmp"
+	chmod 700 "$action_tmp"
 	context_skill=$tmp/agent-context
 	mkdir "$context_skill"
 	goal_file=$tmp/goal.md
+	run_task_file=$tmp/task.md
 	RUN_STDIN_FILE=$tmp/stdin
 	cleanup() {
 		rm -rf "$tmp"
@@ -654,10 +815,12 @@ run_home() {
 
 	RUN_INPUT=$*
 	if [ ! -t 0 ]; then
-		cat >"$RUN_STDIN_FILE"
+		head -c 16777217 >"$RUN_STDIN_FILE" || die 'cannot read piped input'
 	else
 		: >"$RUN_STDIN_FILE"
 	fi
+	run_stdin_bytes=$(bytes "$RUN_STDIN_FILE")
+	[ "$run_stdin_bytes" -le "$INPUT_MAX" ] || die "piped input is $run_stdin_bytes bytes; the limit is $INPUT_MAX"
 	export RUN_INPUT RUN_STDIN_FILE
 
 	{
@@ -667,11 +830,15 @@ run_home() {
 		printf '%s\n\n' '---'
 		write_context
 	} >"$context_skill/SKILL.md"
-	write_goal >"$goal_file"
+	write_run_evidence >"$goal_file"
+	write_run_task >"$run_task_file"
+	run_task_bytes=$(bytes "$run_task_file")
+	[ "$run_task_bytes" -le "$CONTEXT_MAX" ] || die "run task is $run_task_bytes bytes; keep invocation text under the $CONTEXT_MAX-byte task limit and pipe large evidence instead"
 
 	export AGENT_HOME=$HOME_DIR
 	export AGENT_WORK=$HOME_DIR/work
 	export AGENT_STATE=$HOME_DIR/state
+	export AGENT_ACTION_TMP=$action_tmp
 	if [ -z "${agent_bin:-}" ]; then
 		agent_bin=$(resolve_program "$0") || die "cannot resolve agent executable: $0"
 	fi
@@ -680,19 +847,44 @@ run_home() {
 	export BRIEF=$brief_bin
 	export BRIEF_PATH=$HOME_DIR/skills
 	export PLY_DIR=$HOME_DIR/.agent/runs
+	selection_dir=$HOME_DIR/.agent/selections
+	if [ ! -e "$selection_dir" ] && [ ! -L "$selection_dir" ]; then
+		mkdir "$selection_dir" || die "cannot create skill-selection evidence directory: $selection_dir"
+		chmod 700 "$selection_dir"
+	fi
+	safe_dir "$selection_dir" .agent/selections || die 'invalid skill-selection evidence directory'
+	[ -w "$selection_dir" ] || die "skill-selection evidence directory is not writable: $selection_dir"
+	export BRIEF_DIR=$selection_dir
+	if [ -n "$model_effective" ]; then
+		export BRIEF_MODEL=$model_effective
+	else
+		unset BRIEF_MODEL
+	fi
+	if [ -n "$effort" ]; then
+		export BRIEF_EFFORT=$effort
+	else
+		unset BRIEF_EFFORT
+	fi
 
 	check_cmd=$(quote_for_sh "$HOME_DIR/bin/check")
-	set -- -sh -t "$HOME_DIR/tools" -C "$HOME_DIR/work" -check "$check_cmd" -s "$context_skill"
+	run_hash=$(compiled_hash)
+	set -- -sh -shell /bin/sh -no-delegate -t "$HOME_DIR/tools" -C "$HOME_DIR/work" -check "$check_cmd" -goal-file "$run_task_file"
 	if has_skills; then
 		set -- "$@" -s -
 	fi
-	[ -z "$model" ] || set -- "$@" -m "$model"
-	[ -z "$effort" ] || set -- "$@" -effort "$effort"
+	# The governing definition is appended after any selected procedure so a
+	# skill cannot silently outrank AGENTS/SOUL/MEMORY by flag order.
+	set -- "$@" -s "$context_skill"
+	[ -z "$model_effective" ] || set -- "$@" -m "$model_effective"
+	set -- "$@" -effort "$effort"
 	[ -z "$checkpoint_path" ] || set -- "$@" -checkpoint "$checkpoint_path"
 	[ "$quiet" -eq 0 ] || set -- "$@" -q
-	[ -z "$action_shell" ] || set -- "$@" -action-shell "$action_shell"
+	if [ -n "$action_shell" ]; then
+		set -- "$@" -action-shell "$action_shell" -action-boundary-exit 125
+	else
+		set -- "$@" -action-shell /bin/sh
+	fi
 
-	run_hash=$(compiled_hash)
 	say "run $run_hash · check=$(check_hash) · work=$HOME_DIR/work · evidence=$HOME_DIR/.agent/runs${checkpoint:+ · checkpoint=$checkpoint}"
 	if [ "$use_cage" -eq 1 ]; then
 		if [ "$net" -eq 1 ]; then
@@ -706,6 +898,9 @@ run_home() {
 	# piped-input paths, or wake evidence through Ply's inherited environment.
 	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE AGENT_MAY BENCH_MAY \
 		AGENT_ACTION AGENT_ACTION_PATH AGENT_ACTION_POLICY ACTION_PATH ACTION_POLICY ACTION_MAY ACTION_ASK
+	# Agent owns this Ply root invocation. Ambient composition knobs must not
+	# replace its interpreter, depth, contract, effort, or approval boundary.
+	unset PLY_TOOLS PLY_SHELL PLY_ACTION_SHELL PLY_EFFORT PLY_CONTRACT_ID PLY_MAY_JOB PLY_DEPTH MAY ASK_MODEL ASK_SYSTEM ASK_DIR
 
 	set +e
 	"$ply_bin" "$@" <"$goal_file"

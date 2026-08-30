@@ -11,6 +11,20 @@ private temporary directory. Host networking is denied unless the caller
 passes `-net`. Backend setup failure returns 125 and never falls back to an
 unconfined action.
 
+Agent creates that action temporary directory beneath a private run directory
+outside the agent home and pins Cage's `TMPDIR` to it. A caller-supplied
+`TMPDIR` inside the home is rejected. The action wrapper also uses the exact
+Cage and filesystem-scanner executables resolved before Ply prepends the
+agent-controlled toolbox to `PATH`; toolbox programs therefore cannot run in
+the wrapper before confinement.
+
+Toolbox entries may be symlinks to reviewed programs, but Agent resolves each
+one during validation and rejects targets beneath model-writable `work/` or
+`state/`, non-executable/non-regular targets, multiply-linked targets, and an
+unbounded catalogue. This prevents one run from rewriting a tool synopsis or
+verifier-path program that would gain controller/system-prompt authority on
+the next run.
+
 `agent check` and the action wrapper conservatively refuse every regular file
 with more than one hard link under `work/` or `state/`. Hard links alias
 inodes, so pathname-only write policy cannot safely distinguish an outside

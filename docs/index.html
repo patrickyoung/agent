@@ -631,7 +631,7 @@
     <nav class="nav-links" aria-label="Page sections">
       <a href="#loop">The loop</a>
       <a href="#components">Components</a>
-      <a href="components.html">13-part map</a>
+      <a href="components.html">16-part map</a>
       <a href="#foundation">Foundation</a>
       <a href="#start">Try it</a>
       <a class="button secondary" href="compare.html">2026 comparison →</a>
@@ -643,7 +643,7 @@
       <div class="hero-copy">
         <p class="eyebrow">A digital worker at a Unix machine</p>
         <h1>Give intelligence a Linux box—and make it accountable.</h1>
-        <p class="hero-lede"><strong>Bench asks what a digital worker could do with deep Unix fluency, the right programs, and enough intelligence to finish real work.</strong> It is a complete Unix agent system: thirteen focused components compose through processes, streams, files, signals, exit status, and verified event history to turn a durable goal into a proven outcome.</p>
+        <p class="hero-lede"><strong>Bench asks what a digital worker could do with deep Unix fluency, the right programs, and enough intelligence to finish real work.</strong> Its sixteen pinned components provide a strong Unix semantic core: eighteen commands compose through processes, streams, files, signals, exit status, and verified event history. A sealed Linux VM execution plane remains the next deployment boundary.</p>
         <div class="principles" aria-label="Core principles">
           <span class="pill">the goal drives the work</span>
           <span class="pill">files are the interface</span>
@@ -670,7 +670,7 @@
              network: denied
 
 <span class="prompt">$</span> agent run -checkpoint queue support-chief
-<span class="cyan">brief</span>  loaded definition + 2 skills
+<span class="cyan">brief</span>  loaded procedure + governing context
 <span class="yellow">ply</span>    structuring work against check…
 <span class="cyan">ask</span>    reasoning through a solution
 <span class="ok">✓ check accepted</span>
@@ -722,17 +722,17 @@
     <section id="components">
       <div class="shell">
         <div class="section-head reveal">
-          <p class="section-kicker">02 / The complete suite</p>
+          <p class="section-kicker">02 / The pinned suite</p>
           <div>
-            <h2>Thirteen shipped components. Thirteen visible jobs.</h2>
-            <p class="section-intro">This is the complete Bench 0.9.0 manifest—not only the inner Agent loop. No component quietly absorbs another’s job, so the system remains easier to reason about, replace, test, and trust.</p>
+            <h2>Sixteen pinned components. Eighteen public commands.</h2>
+            <p class="section-intro">This is the Bench 0.13.0 compatibility set—not only the inner Agent loop. Fourteen components form the core and MCP/OAuth supply protocol edges. No component quietly absorbs another’s job, so the system remains easier to reason about, replace, test, and trust.</p>
           </div>
         </div>
 
         <div class="components">
           <article class="component reveal"><div class="component-top"><h3>bench</h3><span>▤</span></div><div class="component-role">operator workbench</div><p>Turns open intent into a visible outcome contract, then invokes the other filters without becoming another model, tool loop, or evidence store.</p><span class="component-tag">intent · contract · task · promote</span></article>
           <article class="component agent-card reveal"><div class="component-top"><h3>agent</h3><span>⌘</span></div><div class="component-role">folder-shaped worker</div><p>Compiles a Unix home of goals, memory, tools, checks, state, evidence, and recursively isolated specialist workers into process boundaries.</p><span class="component-tag">scaffold · run · specialize · tick</span></article>
-          <article class="component reveal"><div class="component-top"><h3>brief</h3><span>◫</span></div><div class="component-role">procedure catalogue</div><p>Finds, validates, and prints the relevant written procedures and Agent Skills. It never calls a model.</p><span class="component-tag">rules · skills · selection</span></article>
+          <article class="component reveal"><div class="component-top"><h3>brief</h3><span>◫</span></div><div class="component-role">procedure catalogue</div><p>Finds, validates, and prints relevant Agent Skills. Selection is deterministic first; its explicit fallback borrows Ask without owning a provider.</p><span class="component-tag">rules · skills · selection</span></article>
           <article class="component reveal"><div class="component-top"><h3>ply</h3><span>↻</span></div><div class="component-role">checked process agent loop</div><p>Frames attempts, runs and seals external evaluations, returns feedback, resumes named Ask checkpoints, and invokes nested Ply workers as ordinary tools.</p><span class="component-tag">attempt · evaluate · retry · fan-out</span></article>
           <article class="component reveal"><div class="component-top"><h3>ask</h3><span>✦</span></div><div class="component-role">intelligence + event spine</div><p>Calls the selected model and records exact messages, evidence, reasoning, metadata, usage, outcomes, and sealed records. Replay reconstructs and verifies every request.</p><span class="component-tag">reason · event · fold · replay</span></article>
           <article class="component reveal"><div class="component-top"><h3>context</h3><span>⌕</span></div><div class="component-role">external evidence seam</div><p>Runs one caller-selected source connector, validates its JSONL records, and stamps the exact query and connector digest without routing or synthesis.</p><span class="component-tag">discover · query · merge · provenance</span></article>
@@ -741,13 +741,14 @@
           <article class="component reveal"><div class="component-top"><h3>trail</h3><span>⌁</span></div><div class="component-role">event archive query</div><p>Lists, searches, windows, follows lineage, and delegates replay verification over the authoritative Ask events—without a shadow trace store.</p><span class="component-tag">history · query · lineage · integrity</span></article>
           <article class="component reveal"><div class="component-top"><h3>hone</h3><span>◇</span></div><div class="component-role">verified procedural memory</div><p>Turns replay-verified fail→pass recovery into a proposed procedure update, retaining its provenance and requiring separate admission.</p><span class="component-tag">recover · prepare · review · admit</span></article>
           <article class="component reveal"><div class="component-top"><h3>may</h3><span>◎</span></div><div class="component-role">human authorization</div><p>Binds one human decision to exact proposed bytes and current state before a definition change can be applied.</p><span class="component-tag">review · decide · receipt</span></article>
+          <article class="component reveal"><div class="component-top"><h3>action</h3><span>↯</span></div><div class="component-role">controlled effect boundary</div><p>Runs strict connector proposals through deterministic policy and exact May authorization, preserving uncertain effects as a distinct terminal state.</p><span class="component-tag">inspect · authorize · execute · receipt</span></article>
           <article class="component reveal"><div class="component-top"><h3>tend</h3><span>◷</span></div><div class="component-role">event-sourced process durability</div><p>Supervises exact argv with transactional SQLite state, immutable lifecycle events, durable signals and timers, verified artifacts, projection replay, and explicit uncertain-effect resolution.</p><span class="component-tag">submit · wait · replay · resolve</span></article>
           <article class="component reveal"><div class="component-top"><h3>draft</h3><span>△</span></div><div class="component-role">design + promotion path</div><p>Turns an argued <code>DESIGN.md</code> into explicit build and proof commands, composing Ask, Brief, Ply, and Hone instead of hiding another framework.</p><span class="component-tag">new · check · build · prove</span></article>
         </div>
 
         <div class="composition-note reveal">
-          <strong>MCP is an edge adapter, not a fourteenth suite component.</strong>
-          <span>The standalone MCP edge discovers remote capabilities and produces a descriptor-admitted directory of ordinary programs. Bench and Ply consume that directory without depending on its compiler or learning the wire protocol. The edge is available today but remains outside the Bench 0.9.0 archive.</span>
+          <strong>MCP and OAuth are pinned protocol edges, not hot-path filters.</strong>
+          <span>The MCP component contributes <code>mcp</code>, <code>mcpbox</code>, and <code>mcpserve</code>; OAuth contributes one command. They discover, compile, serve, and authorize external capabilities as ordinary process seams. Shipping them does not mean every Agent run loads them.</span>
         </div>
 
         <div class="composition-note reveal">

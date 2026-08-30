@@ -10,20 +10,19 @@ a hosted platform. Programs are capabilities; `PATH` is the tool registry;
 streams and files are protocols and durable state; exit status, signals, shell,
 Make, schedulers, and process groups provide control flow and orchestration.
 
-The complete suite supplies the capabilities commonly spread across several
-2026 products: Ask's append-only event history reconstructs and verifies exact
-model requests; Ply turns executable checks into sealed evaluations and can
-compose nested process workers; Agent supplies isolated homes and multiple
-kinds of memory; POSIX supplies workflow topology; and Tend adds transactional,
-event-sourced durability for any ordinary process. The real outer boundaries
-are multi-host placement, automatic journaling of arbitrary calls inside a
-process, managed serving and indexing planes, unified dashboards, and stronger
-machine/secret isolation—not replay, evaluation, memory, workflows, or
-multi-agent capability.
+The pinned suite supplies a strong semantic core assembled from capabilities
+commonly spread across several 2026 products: Ask's append-only event history
+reconstructs and verifies exact model requests; Ply turns executable checks
+into sealed evaluations and can compose nested process workers; Agent supplies
+isolated homes and multiple kinds of memory; POSIX supplies workflow topology;
+and Tend adds transactional, event-sourced durability for any ordinary
+process. It does not yet supply a sealed per-task VM, workload identity and
+credential mediation, a signed capability lock, or one durable cross-VM effect
+ledger. Those are the important outer-system boundaries.
 
 For the architecture at a glance, open the
 [one-page visual explainer](https://patrickyoung.github.io/agent/). The
-[fourteen-component map](https://patrickyoung.github.io/agent/components.html)
+[sixteen-component map](https://patrickyoung.github.io/agent/components.html)
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
 capability, and identifies ideas Bench can borrow without moving away from
@@ -32,13 +31,12 @@ using the complete MCP surface through filters and capability directories
 without putting an MCP runtime inside Ply or Agent; its first edge release is
 the standalone [`mcp` edge](https://github.com/patrickyoung/mcp).
 
-Agent ships in the fourteen-component Bench suite with Bench, Ask, Brief,
-Ply, Context, Action, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
-normalized external evidence through executable connectors; Cite is the
-separate deterministic filter that accepts only exact Context ref-to-URL
-Markdown citations. The separately installed `mcp` sibling now supplies the
-modern protocol filter and reviewed capability-folder compiler; it remains
-an edge component beside the fourteen-component Bench core.
+Agent ships in the sixteen-component Bench suite. Its fourteen-component core
+contains Bench, Ask, Brief, Ply, Context, Action, Cite, Cage, May, Hone, Trail,
+Tend, and Draft; the pinned `mcp` and `oauth` edges add reviewed protocol and
+authorization boundaries. Context retrieves normalized external evidence
+through executable connectors; Cite is the separate deterministic filter that
+accepts only exact Context ref-to-URL Markdown citations.
 
 ```sh
 agent new support-chief
@@ -77,7 +75,9 @@ support-chief/
 ```
 
 `agent run` defaults to full shell access inside Cage, with writes limited to
-`work/`, `state/`, and the process temporary directory and with network denied.
+`work/`, `state/`, and a fresh private action temporary directory outside the
+agent home, and with network denied. An ambient `TMPDIR` inside the home is
+refused rather than widened into a model-writable path.
 Use `-net` when the work genuinely needs network access. Use `-no-cage` only
 when you deliberately want the ordinary Ply host boundary. Neither choice can
 be made by a Markdown file.
@@ -86,12 +86,26 @@ The agent-specific `tools/` directory is prepended even in full-shell mode, so
 small domain programs are discovered beside ordinary host tools. Agent Skills
 under `skills/` are selected by Brief from the standing goal. The skill path
 is agent-local by default: ambient host skills are not silently inherited.
-Empty skill and tool directories are fine.
+Ply tries Brief's deterministic offline match before the replayable model
+selector, and records which path chose the skill. Empty skill and tool
+directories are fine.
+
+Agent disables Ply's generic nested-process delegation recipe. Its specialist
+homes are an explicit external controller boundary with separate definition,
+authority, and evidence; a confined model reports a bounded specialist job
+for the controller instead of attempting a nested provider call inside Cage.
 
 The required `bin/check` runs from `work/` before the first model turn and
 after every candidate completion. Exit 0 accepts, exit 1 rejects and returns
 feedback to the worker, and any other status means the verifier is broken.
 This is Ply's existing contract; `agent` does not reinterpret it.
+
+Agent passes the durable GOAL/HEARTBEAT text and explicit invocation focus as
+Ply's task through a private `-goal-file`, never process argv. PLAN, wake
+output, and piped bytes are a separate stdin evidence stream, so large input
+can use Ply's content-addressed spool and untrusted evidence does not choose a
+system-level skill. The task channel is capped at 64 KiB and piped evidence at
+16 MiB before Ply or a model is invoked.
 
 ## Commands
 

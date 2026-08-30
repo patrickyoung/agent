@@ -27,6 +27,15 @@ cat >"$fake_bin/cage" <<'EOF'
 exit 99
 EOF
 
+cat >"$fake_bin/capture-cage" <<'EOF'
+#!/bin/sh
+set -eu
+: "${AGENT_TEST_CAPTURE:?}"
+printf '%s\n' "${TMPDIR:-}" >"$AGENT_TEST_CAPTURE/cage-tmpdir"
+printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/cage-argv"
+exit 0
+EOF
+
 cat >"$fake_bin/hone" <<'EOF'
 #!/bin/sh
 set -eu
@@ -87,32 +96,46 @@ EOF
 cat >"$fake_bin/ply" <<'EOF'
 #!/bin/sh
 set -eu
+if [ "${1:-}" = capabilities ]; then
+  printf '%s\n' '{"schema":"ply.capabilities/v1","version":"fixture","features":{"action_boundary_receipt":"ply.action-boundary/v1","content_addressed_stdin":true,"goal_file":true,"no_delegate":true}}'
+  exit 0
+fi
 : "${AGENT_TEST_CAPTURE:?}"
 printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/argv"
 printf '%s\n' "${BRIEF_PATH:-}" >"$AGENT_TEST_CAPTURE/brief-path"
 printf '%s\n' "${PLY_DIR:-}" >"$AGENT_TEST_CAPTURE/ply-dir"
 printf '%s\n' "${ASK:-}" >"$AGENT_TEST_CAPTURE/ply-ask"
+printf '%s\n' "${AGENT_ACTION_TMP:-}" >"$AGENT_TEST_CAPTURE/action-tmp-env"
+printf '%s|%s|%s|%s|%s|%s|%s\n' "${PLY_SHELL-unset}" "${PLY_ACTION_SHELL-unset}" "${PLY_EFFORT-unset}" "${PLY_CONTRACT_ID-unset}" "${PLY_MAY_JOB-unset}" "${PLY_DEPTH-unset}" "${ASK_MODEL-unset}" >"$AGENT_TEST_CAPTURE/composition-env"
+printf '%s|%s|%s\n' "${BRIEF_MODEL-unset}" "${BRIEF_EFFORT-unset}" "${BRIEF_DIR-unset}" >"$AGENT_TEST_CAPTURE/brief-runtime"
 printf '%s|%s|%s|%s|%s|%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" "${AGENT_MAY-unset}" "${BENCH_MAY-unset}" "${AGENT_ACTION-unset}" "${AGENT_ACTION_PATH-unset}" "${ACTION_PATH-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
 cat >"$AGENT_TEST_CAPTURE/stdin"
 
 previous=
 for argument do
-  if [ "$previous" = '-s' ]; then
-    case "$argument" in
-      -) ;;
-      *) cp "$argument/SKILL.md" "$AGENT_TEST_CAPTURE/context" ;;
-    esac
-    previous=
-    continue
-  fi
-  previous=$argument
+	case $previous in
+	  -s)
+		case "$argument" in
+		  -) ;;
+		  *) cp "$argument/SKILL.md" "$AGENT_TEST_CAPTURE/context" ;;
+		esac
+		previous=
+		continue
+		;;
+	  -goal-file)
+		cp "$argument" "$AGENT_TEST_CAPTURE/task"
+		previous=
+		continue
+		;;
+	esac
+	previous=$argument
 done
 
 printf '%s\n' 'fixture answer'
 exit "${AGENT_TEST_PLY_EXIT:-0}"
 EOF
 
-chmod 755 "$fake_bin/action" "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/may" "$fake_bin/ply" "$fake_bin/trail"
+chmod 755 "$fake_bin/action" "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/capture-cage" "$fake_bin/hone" "$fake_bin/may" "$fake_bin/ply" "$fake_bin/trail"
 
 failures=0
 checks=0
@@ -163,7 +186,7 @@ assert_not_contains() {
 }
 
 version_output=$($agent version)
-if [ "$version_output" = 'agent 0.2.0' ]; then
+if [ "$version_output" = 'agent 0.2.1' ]; then
   ok 'version follows the suite component contract'
 else
   not_ok 'version follows the suite component contract'
@@ -184,6 +207,7 @@ assert_dir 'new creates mutable state root' "$home/state"
 assert_dir 'new creates file-shaped KV state' "$home/state/kv"
 assert_dir 'new creates run evidence root' "$home/.agent/runs"
 assert_dir 'new creates checkpoint root' "$home/.agent/checkpoints"
+assert_dir 'new creates skill-selection evidence root' "$home/.agent/selections"
 assert_dir 'new creates learning evidence root' "$home/.agent/learning"
 assert_dir 'new creates reviewed learning proposal root' "$home/.agent/learning/proposals"
 assert_dir 'new creates definition proposal root' "$home/work/proposals"
@@ -206,6 +230,7 @@ assert_contains 'show includes operating instructions' "$show" '## Operating ins
 assert_contains 'show keeps goal distinct' "$show" '# Goal input'
 assert_contains 'show makes default authority visible' "$show" 'network denied'
 assert_contains 'show names checkpoint root' "$show" "$home/.agent/checkpoints"
+assert_contains 'show names skill-selection evidence' "$show" "$home/.agent/selections/find"
 assert_contains 'show names action proposal root' "$show" "$home/work/actions"
 
 child=$home/agents/researcher
@@ -253,8 +278,12 @@ else
 fi
 
 hardlink_stderr=$tmp/hardlink-stderr
+locked_action_tmp=$tmp/locked-action-tmp
+mkdir "$locked_action_tmp"
 if AGENT_WORK="$locked/work" \
    AGENT_STATE="$locked/state" \
+   AGENT_ACTION_TMP="$locked_action_tmp" \
+   AGENT_FIND="$(command -v find)" \
    AGENT_CAGE="$fake_bin/cage" \
    "$here/bin/agent-action-shell" -c ':' >/dev/null 2>"$hardlink_stderr"; then
   not_ok 'action boundary rechecks hard links'
@@ -267,6 +296,67 @@ else
   fi
 fi
 assert_contains 'hard-link refusal is explained' "$hardlink_stderr" 'multiply-linked regular file'
+rm "$locked/work/linked-file"
+
+cat >"$home/tools/find" <<EOF
+#!/bin/sh
+printf '%s\n' escaped >"$capture/untrusted-find-ran"
+exit 0
+EOF
+chmod 700 "$home/tools/find"
+trusted_find=$tmp/trusted-find
+cat >"$trusted_find" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+chmod 700 "$trusted_find"
+safe_action_tmp=$tmp/safe-action-tmp
+mkdir "$safe_action_tmp"
+safe_action_tmp=$(
+  cd -P "$safe_action_tmp"
+  pwd -P
+)
+rm -f "$capture/untrusted-find-ran" "$capture/cage-tmpdir" "$capture/cage-argv"
+if PATH="$home/tools:$PATH" \
+   AGENT_WORK="$home/work" \
+   AGENT_STATE="$home/state" \
+   AGENT_ACTION_TMP="$safe_action_tmp" \
+   AGENT_FIND="$trusted_find" \
+   AGENT_CAGE="$fake_bin/capture-cage" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$here/bin/agent-action-shell" -c ':' >/dev/null 2>&1; then
+  ok 'action boundary reaches pinned Cage'
+else
+  not_ok 'action boundary reaches pinned Cage'
+fi
+if [ ! -e "$capture/untrusted-find-ran" ]; then
+  ok 'toolbox cannot shadow pre-Cage hard-link scanner'
+else
+  not_ok 'toolbox cannot shadow pre-Cage hard-link scanner'
+fi
+assert_contains 'action boundary pins Cage temporary writes' "$capture/cage-tmpdir" "$safe_action_tmp"
+
+unsafe_action_tmp=$home/work/action-tmp
+mkdir "$unsafe_action_tmp"
+rm -f "$capture/cage-tmpdir"
+if AGENT_WORK="$home/work" \
+   AGENT_STATE="$home/state" \
+   AGENT_ACTION_TMP="$unsafe_action_tmp" \
+   AGENT_FIND="$trusted_find" \
+   AGENT_CAGE="$fake_bin/capture-cage" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$here/bin/agent-action-shell" -c ':' >/dev/null 2>&1; then
+  not_ok 'action boundary refuses replaceable temporary roots'
+else
+  status=$?
+  if [ "$status" -eq 125 ] && [ ! -e "$capture/cage-tmpdir" ]; then
+    ok 'action boundary refuses replaceable temporary roots'
+  else
+    not_ok 'action boundary refuses replaceable temporary roots'
+  fi
+fi
+rm -rf "$unsafe_action_tmp"
+rm "$home/tools/find"
 
 rm -f "$capture/argv"
 if AGENT_TEST_CAPTURE="$capture" "$agent" tick "$home" >/dev/null 2>&1 && [ ! -e "$capture/argv" ]; then
@@ -308,9 +398,9 @@ BENCH_MAY="$fake_bin/may" \
 AGENT_TEST_CAPTURE="$capture" \
 "$agent" tick "$home" >"$tick_stdout" 2>/dev/null
 assert_contains 'changed wake starts Ply' "$tick_stdout" 'fixture answer'
-assert_contains 'heartbeat replaces the standing goal' "$capture/stdin" '# Heartbeat goal'
+assert_contains 'heartbeat replaces the standing goal' "$capture/task" 'Queue watch'
 assert_contains 'wake output becomes initial evidence' "$capture/stdin" 'ticket 42 changed'
-assert_not_contains 'heartbeat does not silently pursue GOAL.md' "$capture/stdin" 'Replace this with the durable end state'
+assert_not_contains 'heartbeat does not silently pursue GOAL.md' "$capture/task" 'Replace this with the durable end state'
 
 cat >"$home/bin/wake" <<'EOF'
 #!/bin/sh
@@ -373,7 +463,7 @@ else
   sed 's/^/# /' "$specialist_stderr"
 fi
 assert_contains 'specialist preserves child stdout' "$specialist_stdout" 'fixture answer'
-assert_contains 'specialist receives bounded invocation task' "$capture/stdin" 'investigate one bounded claim'
+assert_contains 'specialist receives bounded invocation task' "$capture/task" 'investigate one bounded claim'
 assert_contains 'specialist loads only child instructions' "$capture/context" 'Research one bounded question'
 assert_not_contains 'specialist does not inherit parent instructions' "$capture/context" 'Own the support queue'
 assert_contains 'specialist stores separate replay evidence' "$capture/ply-dir" "$child/.agent/runs"
@@ -734,6 +824,102 @@ else
 fi
 rm "$home/skills/linked-skill"
 
+symlinked_instructions=$home/skills/symlinked-instructions
+mkdir "$symlinked_instructions"
+ln -s "$home/GOAL.md" "$symlinked_instructions/SKILL.md"
+if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
+  not_ok 'check refuses symlinked skill instructions'
+else
+  ok 'check refuses symlinked skill instructions'
+fi
+rm "$symlinked_instructions/SKILL.md"
+rmdir "$symlinked_instructions"
+
+reserved_skill=$home/skills/agent-context
+mkdir "$reserved_skill"
+cp "$home/skills/local-skill/SKILL.md" "$reserved_skill/SKILL.md"
+if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
+  not_ok 'check reserves the private agent-context identity'
+else
+  ok 'check reserves the private agent-context identity'
+fi
+rm "$reserved_skill/SKILL.md"
+rmdir "$reserved_skill"
+
+mutable_tool=$home/work/mutable-tool
+cat >"$mutable_tool" <<'EOF'
+#!/bin/sh
+# model-rewritable synopsis
+exit 0
+EOF
+chmod 700 "$mutable_tool"
+ln -s "$mutable_tool" "$home/tools/mutable-tool"
+if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
+  not_ok 'check refuses toolbox targets in model-writable roots'
+else
+  ok 'check refuses toolbox targets in model-writable roots'
+fi
+rm "$home/tools/mutable-tool" "$mutable_tool"
+
+old_ply=$tmp/old-ply
+cat >"$old_ply" <<'EOF'
+#!/bin/sh
+[ "${1:-}" = capabilities ] && { printf '%s\n' '{"schema":"old","features":{}}'; exit 0; }
+exit 99
+EOF
+chmod 700 "$old_ply"
+old_ply_stderr=$tmp/old-ply-stderr
+if AGENT_BRIEF="$fake_bin/brief" \
+   AGENT_PLY="$old_ply" \
+   AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
+   "$agent" run "$home" >/dev/null 2>"$old_ply_stderr"; then
+  not_ok 'run refuses a Ply without required boundary capabilities'
+else
+  ok 'run refuses a Ply without required boundary capabilities'
+fi
+assert_contains 'incompatible Ply names the missing capability' "$old_ply_stderr" 'ply.capabilities/v1'
+
+rm -f "$capture/argv"
+home_tmp_stderr=$tmp/home-tmp-stderr
+if TMPDIR="$home/work" \
+   AGENT_BRIEF="$fake_bin/brief" \
+   AGENT_PLY="$fake_bin/ply" \
+   AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$agent" run "$home" >/dev/null 2>"$home_tmp_stderr"; then
+  not_ok 'run refuses an ambient temporary root inside home'
+else
+  ok 'run refuses an ambient temporary root inside home'
+fi
+assert_contains 'unsafe ambient temporary root is explained' "$home_tmp_stderr" 'temporary directory must be outside agent home'
+if [ ! -e "$capture/argv" ]; then
+  ok 'unsafe ambient temporary root stops before Ply'
+else
+  not_ok 'unsafe ambient temporary root stops before Ply'
+fi
+
+rm -f "$capture/argv"
+oversized_stdin_stderr=$tmp/oversized-stdin-stderr
+if dd if=/dev/zero bs=1048576 count=17 2>/dev/null | \
+   AGENT_BRIEF="$fake_bin/brief" \
+   AGENT_PLY="$fake_bin/ply" \
+   AGENT_CAGE="$fake_bin/cage" \
+   AGENT_ASK="$fake_bin/ask" \
+   AGENT_TEST_CAPTURE="$capture" \
+   "$agent" run "$home" >/dev/null 2>"$oversized_stdin_stderr"; then
+  not_ok 'oversized piped evidence stops before Ply'
+else
+  ok 'oversized piped evidence stops before Ply'
+fi
+assert_contains 'oversized piped evidence names the limit' "$oversized_stdin_stderr" 'the limit is 16777216'
+if [ ! -e "$capture/argv" ]; then
+  ok 'oversized piped evidence makes no model call'
+else
+  not_ok 'oversized piped evidence makes no model call'
+fi
+
 stdout=$tmp/stdout
 stderr=$tmp/stderr
 printf '%s' 'piped fixture bytes' | \
@@ -746,23 +932,51 @@ printf '%s' 'piped fixture bytes' | \
   AGENT_ACTION_PATH="$tmp/controller-actions" \
   ACTION_PATH="$tmp/ambient-actions" \
   BENCH_MAY="$fake_bin/may" \
+  PLY_SHELL=/bin/false \
+  PLY_ACTION_SHELL=/bin/false \
+  PLY_EFFORT=ambient-effort \
+  PLY_CONTRACT_ID=ambient-contract \
+  PLY_MAY_JOB=ambient-job \
+  PLY_DEPTH=7 \
+  ASK_MODEL=ambient-model \
+  BRIEF_MODEL=ambient-selector \
   AGENT_TEST_CAPTURE="$capture" \
   "$agent" run -m fixture-model -effort high "$home" -- 'handle ticket 42' \
   >"$stdout" 2>"$stderr"
 
 assert_contains 'run preserves Ply stdout' "$stdout" 'fixture answer'
-assert_contains 'goal reaches Ply stdin' "$capture/stdin" 'Replace this with the durable end state'
-assert_contains 'invocation input reaches Ply stdin' "$capture/stdin" 'handle ticket 42'
+assert_contains 'goal reaches Ply through a private file' "$capture/task" 'Replace this with the durable end state'
+assert_contains 'invocation input reaches the private task file' "$capture/task" 'handle ticket 42'
 assert_contains 'piped input reaches Ply stdin' "$capture/stdin" 'piped fixture bytes'
+assert_not_contains 'goal text is absent from Ply argv' "$capture/argv" 'Replace this with the durable end state'
+assert_not_contains 'invocation text is absent from Ply argv' "$capture/argv" 'handle ticket 42'
+assert_not_contains 'piped evidence is absent from Ply argv' "$capture/argv" 'piped fixture bytes'
 assert_contains 'private context is delivered through a skill' "$capture/context" '## Operating instructions'
 assert_contains 'local skills are scoped through BRIEF_PATH' "$capture/brief-path" "$home/skills"
 assert_contains 'run evidence is scoped through PLY_DIR' "$capture/ply-dir" "$home/.agent/runs"
 assert_contains 'run pins Ask for Ply model calls' "$capture/ply-ask" "$fake_bin/ask"
+assert_contains 'ambient Ply composition variables are scrubbed' "$capture/composition-env" 'unset|unset|unset|unset|unset|unset|unset'
+assert_contains 'selector uses run model, effort, and home evidence root' "$capture/brief-runtime" "fixture-model|high|$home/.agent/selections"
+assert_contains 'run provides a private action temporary root' "$capture/action-tmp-env" '/agent-run.'
+if action_tmp_seen=$(cat "$capture/action-tmp-env") && \
+   case $action_tmp_seen in "$home"|"$home"/*) false ;; *) true ;; esac; then
+  ok 'private action temporary root stays outside home'
+else
+  not_ok 'private action temporary root stays outside home'
+fi
 assert_contains 'private controller inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset|unset|unset|unset|unset|unset'
 assert_contains 'Ply works in the mutable work root' "$capture/argv" "$home/work"
 assert_contains 'model selection is forwarded' "$capture/argv" 'fixture-model'
 assert_contains 'effort selection is forwarded' "$capture/argv" 'high'
 assert_contains 'confined action shell is forwarded' "$capture/argv" 'agent-action-shell'
+assert_contains 'generic nested Ply delegation is disabled' "$capture/argv" '-no-delegate'
+selected_skill_line=$(grep -n -x -- '-' "$capture/argv" | head -1 | cut -d: -f1)
+context_skill_line=$(grep -n -F -- 'agent-context' "$capture/argv" | head -1 | cut -d: -f1)
+if [ -n "$selected_skill_line" ] && [ -n "$context_skill_line" ] && [ "$selected_skill_line" -lt "$context_skill_line" ]; then
+  ok 'governing context is composed after the selected skill'
+else
+  not_ok 'governing context is composed after the selected skill'
+fi
 assert_not_contains 'context body does not leak into argv' "$capture/argv" 'Own the support queue'
 
 rmdir "$home/.agent/checkpoints"
