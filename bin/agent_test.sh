@@ -54,6 +54,25 @@ cat >"$fake_bin/ask" <<'EOF'
 exit 0
 EOF
 
+cat >"$fake_bin/action" <<'EOF'
+#!/bin/sh
+set -eu
+: "${AGENT_TEST_CAPTURE:?}"
+case "${1:-}" in
+  inspect)
+    cat "$2"
+    printf '\n'
+    ;;
+  run)
+    printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/action-argv"
+    printf '%s\n' "${ACTION_PATH:-}" >"$AGENT_TEST_CAPTURE/action-path"
+    printf '%s\n' '{"effect":"fixture"}'
+    exit "${AGENT_TEST_ACTION_EXIT:-0}"
+    ;;
+  *) exit 2 ;;
+esac
+EOF
+
 cat >"$fake_bin/may" <<'EOF'
 #!/bin/sh
 set -eu
@@ -73,7 +92,7 @@ printf '%s\n' "$@" >"$AGENT_TEST_CAPTURE/argv"
 printf '%s\n' "${BRIEF_PATH:-}" >"$AGENT_TEST_CAPTURE/brief-path"
 printf '%s\n' "${PLY_DIR:-}" >"$AGENT_TEST_CAPTURE/ply-dir"
 printf '%s\n' "${ASK:-}" >"$AGENT_TEST_CAPTURE/ply-ask"
-printf '%s|%s|%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" "${AGENT_MAY-unset}" "${BENCH_MAY-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
+printf '%s|%s|%s|%s|%s|%s|%s|%s\n' "${RUN_INPUT-unset}" "${RUN_WAKE_OUTPUT-unset}" "${RUN_STDIN_FILE-unset}" "${AGENT_MAY-unset}" "${BENCH_MAY-unset}" "${AGENT_ACTION-unset}" "${AGENT_ACTION_PATH-unset}" "${ACTION_PATH-unset}" >"$AGENT_TEST_CAPTURE/internal-env"
 cat >"$AGENT_TEST_CAPTURE/stdin"
 
 previous=
@@ -93,7 +112,7 @@ printf '%s\n' 'fixture answer'
 exit "${AGENT_TEST_PLY_EXIT:-0}"
 EOF
 
-chmod 755 "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/may" "$fake_bin/ply" "$fake_bin/trail"
+chmod 755 "$fake_bin/action" "$fake_bin/ask" "$fake_bin/brief" "$fake_bin/cage" "$fake_bin/hone" "$fake_bin/may" "$fake_bin/ply" "$fake_bin/trail"
 
 failures=0
 checks=0
@@ -144,7 +163,7 @@ assert_not_contains() {
 }
 
 version_output=$($agent version)
-if [ "$version_output" = 'agent 0.1.2' ]; then
+if [ "$version_output" = 'agent 0.2.0' ]; then
   ok 'version follows the suite component contract'
 else
   not_ok 'version follows the suite component contract'
@@ -168,6 +187,7 @@ assert_dir 'new creates checkpoint root' "$home/.agent/checkpoints"
 assert_dir 'new creates learning evidence root' "$home/.agent/learning"
 assert_dir 'new creates reviewed learning proposal root' "$home/.agent/learning/proposals"
 assert_dir 'new creates definition proposal root' "$home/work/proposals"
+assert_dir 'new creates external action proposal root' "$home/work/actions"
 assert_dir 'new creates amendment evidence root' "$home/.agent/amendments"
 
 if AGENT_BRIEF="$fake_bin/brief" "$agent" check "$home" >/dev/null 2>&1; then
@@ -186,6 +206,7 @@ assert_contains 'show includes operating instructions' "$show" '## Operating ins
 assert_contains 'show keeps goal distinct' "$show" '# Goal input'
 assert_contains 'show makes default authority visible' "$show" 'network denied'
 assert_contains 'show names checkpoint root' "$show" "$home/.agent/checkpoints"
+assert_contains 'show names action proposal root' "$show" "$home/work/actions"
 
 child=$home/agents/researcher
 AGENT_BRIEF="$fake_bin/brief" "$agent" new "$child" 'Research one bounded question' >/dev/null
@@ -519,6 +540,54 @@ else
   ok 'history refuses sessions outside home evidence'
 fi
 
+empty_actions=$tmp/empty-actions
+AGENT_BRIEF="$fake_bin/brief" AGENT_ACTION="$fake_bin/action" AGENT_TEST_CAPTURE="$capture" \
+"$agent" actions "$home" >"$empty_actions" 2>/dev/null
+assert_contains 'action review reports an empty catalogue without mutation' "$empty_actions" 'count: 0'
+
+action_proposal=$home/work/actions/publish-ticket.json
+printf '%s\n' '{"version":1,"connector":"publish-ticket","input":{"ticket":42}}' >"$action_proposal"
+rm -f "$capture/action-argv"
+action_review=$tmp/action-review
+AGENT_BRIEF="$fake_bin/brief" AGENT_ACTION="$fake_bin/action" AGENT_TEST_CAPTURE="$capture" \
+"$agent" actions "$home" publish-ticket.json >"$action_review" 2>/dev/null
+assert_contains 'action review exposes the exact proposal bytes' "$action_review" '"connector":"publish-ticket"'
+assert_contains 'action review exposes the stable May job' "$action_review" 'may-job: agent-action-'
+if [ ! -e "$capture/action-argv" ]; then
+  ok 'action review never invokes a connector'
+else
+  not_ok 'action review never invokes a connector'
+fi
+
+set +e
+AGENT_BRIEF="$fake_bin/brief" \
+AGENT_ACTION="$fake_bin/action" \
+AGENT_ACTION_PATH="$tmp/controller-actions" \
+AGENT_MAY="$fake_bin/may" \
+AGENT_ASK="$fake_bin/ask" \
+AGENT_TEST_CAPTURE="$capture" \
+AGENT_TEST_ACTION_EXIT=75 \
+"$agent" act -policy "$fake_bin/policy" "$home" publish-ticket.json recovery >/dev/null 2>/dev/null
+act_status=$?
+set -e
+if [ "$act_status" -eq 75 ]; then
+  ok 'act preserves Action parked status'
+else
+  not_ok 'act preserves Action parked status'
+fi
+assert_contains 'act passes the proposal without shell parsing' "$capture/action-argv" "$action_proposal"
+assert_contains 'act binds events to the selected Ask session' "$capture/action-argv" "$recovery"
+assert_contains 'act forwards the deterministic policy literally' "$capture/action-argv" "$fake_bin/policy"
+assert_contains 'act selects controller-only connectors' "$capture/action-path" "$tmp/controller-actions"
+
+if AGENT_BRIEF="$fake_bin/brief" AGENT_ACTION="$fake_bin/action" AGENT_ACTION_PATH="$tmp/controller-actions" \
+   AGENT_MAY="$fake_bin/may" AGENT_ASK="$fake_bin/ask" AGENT_TEST_CAPTURE="$capture" \
+   "$agent" act "$home" "$outside_session" recovery >/dev/null 2>&1; then
+  not_ok 'act refuses proposals outside work/actions'
+else
+  ok 'act refuses proposals outside work/actions'
+fi
+
 empty_proposals=$tmp/empty-proposals
 AGENT_BRIEF="$fake_bin/brief" "$agent" proposals "$home" >"$empty_proposals" 2>/dev/null
 assert_contains 'proposal review reports an empty catalogue without mutation' "$empty_proposals" 'count: 0'
@@ -527,9 +596,10 @@ proposal=$home/work/proposals/add-evidence-rule.patch
 cat >"$proposal" <<'EOF'
 --- a/AGENTS.md
 +++ b/AGENTS.md
-@@ -6,3 +6,4 @@
+@@ -6,4 +6,5 @@
  - Keep current progress in state/plan.md; do not rewrite definition files.
  - Put proposed definition changes under work/proposals/ for human review.
+ - Put proposed external effects under work/actions/ as strict Action JSON; never invoke a connector directly or claim a proposal happened.
  - Inspect state on demand instead of loading it wholesale.
 +- Summarize the evidence that changed the plan before taking action.
 EOF
@@ -672,6 +742,9 @@ printf '%s' 'piped fixture bytes' | \
   AGENT_CAGE="$fake_bin/cage" \
   AGENT_ASK="$fake_bin/ask" \
   AGENT_MAY="$fake_bin/may" \
+  AGENT_ACTION="$fake_bin/action" \
+  AGENT_ACTION_PATH="$tmp/controller-actions" \
+  ACTION_PATH="$tmp/ambient-actions" \
   BENCH_MAY="$fake_bin/may" \
   AGENT_TEST_CAPTURE="$capture" \
   "$agent" run -m fixture-model -effort high "$home" -- 'handle ticket 42' \
@@ -685,7 +758,7 @@ assert_contains 'private context is delivered through a skill' "$capture/context
 assert_contains 'local skills are scoped through BRIEF_PATH' "$capture/brief-path" "$home/skills"
 assert_contains 'run evidence is scoped through PLY_DIR' "$capture/ply-dir" "$home/.agent/runs"
 assert_contains 'run pins Ask for Ply model calls' "$capture/ply-ask" "$fake_bin/ask"
-assert_contains 'private controller inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset|unset|unset'
+assert_contains 'private controller inputs are absent from Ply env' "$capture/internal-env" 'unset|unset|unset|unset|unset|unset|unset|unset'
 assert_contains 'Ply works in the mutable work root' "$capture/argv" "$home/work"
 assert_contains 'model selection is forwarded' "$capture/argv" 'fixture-model'
 assert_contains 'effort selection is forwarded' "$capture/argv" 'high'

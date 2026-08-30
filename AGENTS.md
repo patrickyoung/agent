@@ -2,7 +2,7 @@
 
 `agent` compiles an agent home into the existing Bench-family process
 boundaries. It is glue, never a second implementation of Ask, Brief, Ply,
-Hone, Trail, May, or Cage.
+Hone, Trail, May, Action, or Cage.
 
 When changing `agent`:
 
@@ -14,6 +14,9 @@ When changing `agent`:
 - load Agent Skills only through Brief and keep private context out of argv;
 - keep Ask sessions authoritative; do not add another transcript or parse
   Ask's event format;
+- keep external effects proposal-shaped inside `work/actions/`; only the
+  controller may invoke Action, and Action owns policy, May, release, and
+  effect receipts;
 - keep checkpoints as controller-owned pointers to Ask sessions, never as a
   second log, filesystem snapshot, retry policy, or completion claim;
 - call public binaries with literal arguments and never run user text through

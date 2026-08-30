@@ -53,6 +53,10 @@ The complete research and product rationale is in
       controller-owned receipt.
 - [x] Proposal review is a bounded, side-effect-free public command that shows
       literal patch bytes and the exact action before May is invoked.
+- [x] External effects are strict model-writable proposals; bounded review is
+      read-only, while an explicit controller command invokes Action outside
+      Cage and records proposal/decision/attempt/sent/result in the selected
+      Ask session.
 
 ## Not doing
 
@@ -65,6 +69,9 @@ The complete research and product rationale is in
 - No writable definition during a confined run. Proposed definition changes
   go under `work/proposals/`; only the controller's explicit `amend` command
   can apply one after exact human approval.
+- No effect authority in a proposal. `work/actions/` names a connector and
+  input only; operator policy, connector paths, May, and execution remain in
+  the controller.
 
 ## The split
 
@@ -81,6 +88,7 @@ The complete research and product rationale is in
 | browse prior runs | trail | it owns read-only Ask archive inspection |
 | authorize exact definition bytes | may | it binds a human decision to one proposal and current definition |
 | parse, apply, validate, and receipt a patch | this script + git | bounded controller mechanics with rollback |
+| authorize and receipt external effects | action + may + ask | Action owns exact policy, release, and typed replay events |
 
 ## Data
 
@@ -90,6 +98,7 @@ The complete research and product rationale is in
     mutable:
       work/ state/
       work/proposals/   proposed one-file unified diffs
+      work/actions/     strict external-effect proposals
     evidence:
       .agent/runs/       Ask sessions and Ply verifier receipts
       .agent/checkpoints/ locked current-session pointers
@@ -136,3 +145,6 @@ sh eval/run.sh  # integration corpus; requires the installed public suite
 - A model-launched nested agent inside a network-denied Cage cannot reach its
   provider. Parallel specialists therefore require an explicitly networked or
   externally orchestrated slice, not a silent widening.
+- Cage does not become the effect policy. The worker can prepare an Action
+  proposal, but `agent act` is a separate controller invocation and scrubs its
+  connector and approval capabilities from model runs.

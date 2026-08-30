@@ -23,7 +23,7 @@ multi-agent capability.
 
 For the architecture at a glance, open the
 [one-page visual explainer](https://patrickyoung.github.io/agent/). The
-[thirteen-component map](https://patrickyoung.github.io/agent/components.html)
+[fourteen-component map](https://patrickyoung.github.io/agent/components.html)
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
 capability, and identifies ideas Bench can borrow without moving away from
@@ -32,13 +32,13 @@ using the complete MCP surface through filters and capability directories
 without putting an MCP runtime inside Ply or Agent; its first edge release is
 the standalone [`mcp` edge](https://github.com/patrickyoung/mcp).
 
-Agent ships in the thirteen-component Bench suite with Bench, Ask, Brief,
-Ply, Context, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
+Agent ships in the fourteen-component Bench suite with Bench, Ask, Brief,
+Ply, Context, Action, Cite, Cage, May, Hone, Trail, Tend, and Draft. Context retrieves
 normalized external evidence through executable connectors; Cite is the
 separate deterministic filter that accepts only exact Context ref-to-URL
 Markdown citations. The separately installed `mcp` sibling now supplies the
 modern protocol filter and reviewed capability-folder compiler; it remains
-outside the thirteen-component Bench 0.9.0 archive.
+an edge component beside the fourteen-component Bench core.
 
 ```sh
 agent new support-chief
@@ -66,6 +66,7 @@ support-chief/
   bin/wake        cheap tick probe: 0 quiet, 1 wake, other broken
   work/           mutable deliverables and working directory
     proposals/    model-authored unified diffs awaiting human review
+    actions/      strict external-effect proposals awaiting controller action
   state/          mutable durable state, not injected into context
     kv/           file-shaped key/value state for simple durable facts
   .agent/runs/    replayable Ask sessions and Ply verifier receipts
@@ -105,6 +106,8 @@ agent learn -into SKILL [-m MODEL] [-n COUNT] [-N] [-why] [-prepare PROPOSAL] [-
 agent learn -show PROPOSAL HOME
 agent learn -admit PROPOSAL HOME
 agent history HOME [ls|find|show|window|lineage|check ...]
+agent actions HOME [PROPOSAL]
+agent act [-policy PROGRAM] HOME PROPOSAL SESSION
 agent proposals HOME [PATCH]
 agent amend HOME PATCH
 agent help
@@ -175,6 +178,31 @@ unchanged. `ls` is the default; `find QUERY`, `show SESSION`, bounded `window`,
 commands accept only regular non-symlinked evidence files beneath that home;
 `check` delegates replay integrity to Ask through Trail.
 
+External effects use the standalone Action filter. A worker can prepare only
+the connector name and JSON input under `work/actions/`; policy, approval,
+credentials, and connector paths remain controller authority. Review never
+causes an effect:
+
+```sh
+agent actions support-chief
+agent actions support-chief create-ticket.json
+```
+
+Execute one exact proposal outside Cage and append its sealed Action events to
+an existing home Ask session:
+
+```sh
+AGENT_ACTION_PATH=/operator/owned/actions \
+  agent act support-chief create-ticket.json SESSION
+```
+
+With no policy, Action routes the exact canonical envelope through May.
+`-policy PROGRAM` selects a deterministic operator policy whose 0/3/75 result
+means allow/deny/review. Agent preserves Action's status; 125 means the effect
+may exist without a complete trustworthy receipt and must not be retried
+automatically. Action, May, policy, and connector paths are scrubbed from Ply's
+worker environment.
+
 `agent amend` is the reviewed definition-change path. `PATCH` must be a
 regular, non-symlinked direct child of `HOME/work/proposals/`, have a portable
 `.patch` filename, and be a conventional unified diff that changes exactly one
@@ -219,15 +247,16 @@ depend on its `bin` directory remaining on `PATH`. Learning needs Hone and
 Brief; evidence review, preparation, and admission also pin Ask for replay or
 wording, while `learn -show` calls only Hone. `history` needs Trail, and its
 `check` command also needs Ask.
+`actions` needs Action; `act` needs Action, Ask, May, and `AGENT_ACTION_PATH`.
 `proposals` needs Git; `amend` needs Git and May.
 Environment overrides `AGENT_PLY`, `AGENT_BRIEF`, `AGENT_CAGE`, `AGENT_HONE`,
-`AGENT_TRAIL`, `AGENT_ASK`, and `AGENT_MAY` are available for a pinned suite
+`AGENT_TRAIL`, `AGENT_ASK`, `AGENT_MAY`, and `AGENT_ACTION` are available for a pinned suite
 and offline tests. `check` only needs Brief when `skills/` contains a skill.
 
 `just install` links `agent` and its Cage action wrapper into `~/.local/bin`,
 beside the other standalone Bench filters.
 
-The Bench `0.9.0` suite also ships Tend as an independent local process
+The Bench suite also ships Tend as an independent local process
 supervisor. It is not an Agent dependency: compose it outside an exact
 `agent run -checkpoint NAME HOME` invocation when the whole process needs
 durable submission, waits, output evidence, and conservative crash recovery.
@@ -256,6 +285,6 @@ prepare/show/admit exact reviewed lesson bytes, browse replay history without
 writing it, and apply one exact human-approved definition patch with rollback
 and evidence. Proposal bytes and approval actions are also inspectable through
 a bounded, read-only public command.
-Bench suite `0.9.0` pins Agent, Ply's checkpoint support, Tend, and the other
+The Bench suite pins Agent, Ply's checkpoint support, Tend, and the other
 public filters as one tested install. Bench has a core interactive home view
 and exposes every Agent command through its headless boundary.

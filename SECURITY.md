@@ -55,6 +55,17 @@ invokes May and never writes a receipt. The catalogue is capped at 16 portable
 `.patch` names, 32 KiB per file, and 64 KiB combined so a writable work tree
 cannot turn the TUI into an unbounded output sink.
 
+`agent actions` and `agent act` provide the equivalent split for external
+effects. The worker may write a strict `{version, connector, input}` proposal
+under `work/actions/`; that file grants no executable, policy, approval mode,
+credential, or connector path. Read-only review validates it through Action's
+public parser without resolving a connector. `agent act` is an explicit
+controller invocation outside Cage: it selects `AGENT_ACTION_PATH`, policy,
+May, and Ask; binds a stable job to the current definition and proposal hashes;
+and records Action's typed receipts in an existing home Ask session. Action,
+May, and connector-path environment are scrubbed before Ply starts. Exit 125
+means the effect may exist and must not be retried automatically.
+
 ## What it does not confine
 
 Cage is not a confidentiality, identity, CPU, memory, process-count, syscall,

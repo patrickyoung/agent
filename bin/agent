@@ -5,7 +5,7 @@
 set -eu
 
 ME=agent
-VERSION=0.1.2
+VERSION=0.2.0
 CONTEXT_MAX=65536
 FILE_MAX=32768
 PROPOSAL_MAX=16
@@ -35,6 +35,9 @@ agent — compile and run a directory-shaped digital worker
   agent learn -into SKILL [flags] HOME SESSION
                                    offer one verified recovery to Hone
   agent history HOME [COMMAND ...] browse this home's replay evidence
+  agent actions HOME [PROPOSAL]   inspect bounded effect proposals; never act
+  agent act [-policy PROGRAM] HOME PROPOSAL SESSION
+                                   execute one proposal through Action + May
   agent proposals HOME [PATCH]    inspect proposals without changing the home
   agent amend HOME PATCH          apply one reviewed definition patch via May
   agent version                    print the version
@@ -75,8 +78,17 @@ amendment:
                 dry-run one root definition-file patch, bind its exact hashes
                 through May, then apply and revalidate only after approval
 
+external actions:
+  agent actions HOME [PROPOSAL]
+                inspect strict JSON proposals under work/actions; never resolve
+                a connector, ask for approval, or cause an external effect
+  agent act [-policy PROGRAM] HOME PROPOSAL SESSION
+                run one proposal outside Cage through Action, bind default
+                review to May, and append sealed events to the Ask session
+
 env: AGENT_PLY AGENT_BRIEF AGENT_CAGE AGENT_HONE AGENT_TRAIL AGENT_ASK
-     AGENT_MAY override dependencies
+     AGENT_MAY AGENT_ACTION override dependencies; AGENT_ACTION_PATH selects
+     controller-only Action connectors
 exit: 0 accepted · 1 negative verdict · 2 broken · composed filter statuses preserved
 EOF
 }
@@ -90,6 +102,7 @@ tool() {
 		AGENT_TRAIL) value=${AGENT_TRAIL:-} ;;
 		AGENT_ASK) value=${AGENT_ASK:-} ;;
 		AGENT_MAY) value=${AGENT_MAY:-} ;;
+		AGENT_ACTION) value=${AGENT_ACTION:-} ;;
 		*) die "internal unknown tool variable: $1" ;;
 	esac
 	fallback=$2
@@ -255,7 +268,7 @@ check_home() {
 			rc=1
 		}
 	done
-	for name in work/proposals .agent/amendments .agent/learning/proposals .agent/checkpoints; do
+	for name in work/proposals work/actions .agent/amendments .agent/learning/proposals .agent/checkpoints; do
 		if [ -e "$HOME_DIR/$name" ] || [ -L "$HOME_DIR/$name" ]; then
 			safe_dir "$HOME_DIR/$name" "$name" || rc=1
 			[ -w "$HOME_DIR/$name" ] || {
@@ -357,6 +370,10 @@ write_context() {
 	printf -- '- learning evidence: `%s` (controller-owned)\n' "$HOME_DIR/.agent/learning"
 	printf -- '- reviewed learning proposals: `%s` (controller-owned)\n' "$HOME_DIR/.agent/learning/proposals"
 	printf -- '- definition proposals: write patches under `%s`\n' "$HOME_DIR/work/proposals"
+	if [ -d "$HOME_DIR/work/actions" ] && [ ! -L "$HOME_DIR/work/actions" ]; then
+		printf -- '- external action proposals: write strict JSON under `%s`\n' "$HOME_DIR/work/actions"
+		printf -- '  using `{\"version\":1,\"connector\":\"NAME\",\"input\":{...}}`; proposals do not grant authority and must be executed by the external controller with `agent act`\n'
+	fi
 
 	set -- "$HOME_DIR"/agents/*
 	if [ -d "$1" ]; then
@@ -415,7 +432,7 @@ new_home() {
 	desc=$*
 	[ -n "$desc" ] || desc='Describe this agent'
 
-	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
+	mkdir -p "$dir/bin" "$dir/work/proposals" "$dir/work/actions" "$dir/state/kv" "$dir/skills" "$dir/agents" "$dir/tools" "$dir/.agent/runs" "$dir/.agent/learning/proposals" "$dir/.agent/amendments" "$dir/.agent/checkpoints"
 	cat >"$dir/AGENTS.md" <<EOF
 # Operating instructions
 
@@ -424,6 +441,7 @@ $desc.
 - Work toward the standing goal and respect its constraints.
 - Keep current progress in state/plan.md; do not rewrite definition files.
 - Put proposed definition changes under work/proposals/ for human review.
+- Put proposed external effects under work/actions/ as strict Action JSON; never invoke a connector directly or claim a proposal happened.
 - Inspect state on demand instead of loading it wholesale.
 EOF
 	cat >"$dir/GOAL.md" <<'EOF'
@@ -504,6 +522,9 @@ show_home() {
 	printf 'learning-evidence: %s\n' "$HOME_DIR/.agent/learning"
 	printf 'learning-proposals: %s\n' "$HOME_DIR/.agent/learning/proposals"
 	printf 'amendment-evidence: %s\n' "$HOME_DIR/.agent/amendments"
+	if [ -d "$HOME_DIR/work/actions" ]; then
+		printf 'action-proposals: %s\n' "$HOME_DIR/work/actions"
+	fi
 	printf 'default-authority: full host tool catalogue; Cage writes work+state; network denied\n'
 	printf '\n# Definition files\n\n'
 	definition_files | while IFS= read -r name; do
@@ -683,7 +704,8 @@ run_home() {
 
 	# The compiled goal is now a regular stdin file. Do not leak caller input,
 	# piped-input paths, or wake evidence through Ply's inherited environment.
-	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE AGENT_MAY BENCH_MAY
+	unset RUN_KIND RUN_WAKE_OUTPUT RUN_INPUT RUN_STDIN_FILE AGENT_MAY BENCH_MAY \
+		AGENT_ACTION AGENT_ACTION_PATH AGENT_ACTION_POLICY ACTION_PATH ACTION_POLICY ACTION_MAY ACTION_ASK
 
 	set +e
 	"$ply_bin" "$@" <"$goal_file"
@@ -766,6 +788,112 @@ session_in_home() {
 	esac
 	safe_file "$SESSION_FILE" session || die "invalid session: $SESSION_FILE"
 	export SESSION_FILE
+}
+
+action_proposal_in_home() {
+	raw=$1
+	proposal_root=$HOME_DIR/work/actions
+	safe_dir "$proposal_root" work/actions || die "invalid action proposal directory: $proposal_root"
+	case $raw in
+		*/*) candidate=$raw ;;
+		*) candidate=$proposal_root/$raw ;;
+	esac
+	[ ! -L "$candidate" ] || die "action proposal may not be a symlink: $candidate"
+	parent=$(physical_dir "$(dirname "$candidate")") || die "action proposal directory not found: $candidate"
+	ACTION_PROPOSAL_FILE=$parent/$(basename "$candidate")
+	[ "$parent" = "$(physical_dir "$proposal_root")" ] || die "action proposal is outside this home's work/actions: $ACTION_PROPOSAL_FILE"
+	proposal_name=$(basename "$ACTION_PROPOSAL_FILE")
+	case $proposal_name in
+		''|.*|*[!A-Za-z0-9._-]*) die "action proposal needs a portable .json filename: $proposal_name" ;;
+		*.json) ;;
+		*) die "action proposal needs a portable .json filename: $proposal_name" ;;
+	esac
+	safe_file "$ACTION_PROPOSAL_FILE" 'action proposal' || die "invalid action proposal: $ACTION_PROPOSAL_FILE"
+	if find "$ACTION_PROPOSAL_FILE" -type f -links +1 -print -quit 2>/dev/null | grep -q .; then
+		die "action proposal is multiply linked: $ACTION_PROPOSAL_FILE"
+	fi
+	proposal_bytes=$(bytes "$ACTION_PROPOSAL_FILE")
+	[ "$proposal_bytes" -le "$FILE_MAX" ] || die "action proposal is $proposal_bytes bytes; the limit is $FILE_MAX"
+	export ACTION_PROPOSAL_FILE
+}
+
+print_action_review() {
+	action_bin=$1
+	proposal_hash=$(hash_file "$ACTION_PROPOSAL_FILE")
+	printf '%s\n' 'agent-action-proposal/v1'
+	printf 'home: %s\n' "$HOME_DIR"
+	printf 'definition-sha256: %s\n' "$(definition_hash)"
+	printf 'proposal: %s\n' "$ACTION_PROPOSAL_FILE"
+	printf 'proposal-sha256: %s\n' "$proposal_hash"
+	printf 'proposal-bytes: %s\n' "$(bytes "$ACTION_PROPOSAL_FILE")"
+	printf 'may-job: agent-action-%s-%s\n' "$(definition_hash)" "$proposal_hash"
+	printf '%s\n' 'canonical-proposal:'
+	"$action_bin" inspect "$ACTION_PROPOSAL_FILE"
+}
+
+actions_home() {
+	[ "$#" -ge 1 ] && [ "$#" -le 2 ] || die 'actions needs HOME and optional PROPOSAL'
+	open_home "$1"
+	if ! check_home >/dev/null; then
+		return 1
+	fi
+	action_bin=$(tool AGENT_ACTION action)
+	if [ "$#" -eq 2 ]; then
+		action_proposal_in_home "$2"
+		print_action_review "$action_bin"
+		return 0
+	fi
+
+	proposal_root=$HOME_DIR/work/actions
+	safe_dir "$proposal_root" work/actions || die "invalid action proposal directory: $proposal_root"
+	set -- "$proposal_root"/*.json
+	if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+		printf 'agent-actions/v1\nhome: %s\ndefinition-sha256: %s\ncount: 0\n' "$HOME_DIR" "$(definition_hash)"
+		return 0
+	fi
+	[ "$#" -le "$PROPOSAL_MAX" ] || die "action proposal catalogue has $# files; the limit is $PROPOSAL_MAX"
+	proposal_total=0
+	printf 'agent-actions/v1\nhome: %s\ndefinition-sha256: %s\ncount: %s\n' "$HOME_DIR" "$(definition_hash)" "$#"
+	for proposal_path do
+		action_proposal_in_home "$proposal_path"
+		proposal_total=$((proposal_total + $(bytes "$ACTION_PROPOSAL_FILE")))
+		[ "$proposal_total" -le "$CONTEXT_MAX" ] || die "action proposal bytes total $proposal_total; the limit is $CONTEXT_MAX"
+		printf '\n'
+		print_action_review "$action_bin"
+	done
+}
+
+act_home() {
+	policy=${AGENT_ACTION_POLICY:-}
+	while [ "$#" -gt 0 ]; do
+		case $1 in
+			-policy) [ "$#" -ge 2 ] || die '-policy needs PROGRAM'; policy=$2; shift 2 ;;
+			-*) die "unknown act flag: $1" ;;
+			*) break ;;
+		esac
+	done
+	[ "$#" -eq 3 ] || die 'act needs HOME PROPOSAL SESSION'
+	open_home "$1"
+	if ! check_home; then
+		return 1
+	fi
+	action_proposal_in_home "$2"
+	session_in_home "$3"
+	action_path=${AGENT_ACTION_PATH:-}
+	[ -n "$action_path" ] || die 'act needs AGENT_ACTION_PATH naming controller-only Action connectors'
+	action_bin=$(tool AGENT_ACTION action)
+	may_bin=$(tool AGENT_MAY may)
+	ask_bin=$(tool AGENT_ASK ask)
+	proposal_hash=$(hash_file "$ACTION_PROPOSAL_FILE")
+	job=agent-action-$(definition_hash)-$proposal_hash
+	say "action · home=$HOME_DIR · proposal=$ACTION_PROPOSAL_FILE · evidence=$SESSION_FILE"
+	set -- run -job "$job" -may "$may_bin" -ask "$ask_bin" -record "$SESSION_FILE" -proposal "$ACTION_PROPOSAL_FILE"
+	[ -z "$policy" ] || set -- "$@" -policy "$policy"
+	set +e
+	(cd "$HOME_DIR/work" && ACTION_PATH=$action_path "$action_bin" "$@")
+	rc=$?
+	set -e
+	return "$rc"
 }
 
 learning_proposal_file() {
@@ -1200,6 +1328,14 @@ case $cmd in
 	history)
 		shift
 		history_home "$@"
+		;;
+	actions)
+		shift
+		actions_home "$@"
+		;;
+	act)
+		shift
+		act_home "$@"
 		;;
 	proposals)
 		shift
