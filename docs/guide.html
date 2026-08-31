@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A conversation-first, step-by-step guide for business process experts building a durable, checked Bench agent through Claude Cowork or a similar workspace.">
+  <meta property="og:title" content="Bench — build your first durable agent">
+  <meta property="og:description" content="Turn process expertise into a bounded job, a case library, a proved design, and a worker whose actions and completion can be independently checked.">
+  <meta property="og:type" content="website">
+  <title>Bench — build your first durable agent</title>
+  <style>
+    :root {
+      --ink: #17221d;
+      --muted: #627069;
+      --paper: #f4f1e8;
+      --surface: #fcfaf4;
+      --line: rgba(23, 34, 29, .15);
+      --green: #a9ef87;
+      --green-deep: #275d3a;
+      --yellow: #f6d76d;
+      --blue: #a9d8f4;
+      --coral: #f4a88f;
+      --purple: #c9b8f4;
+      --shadow: 0 20px 60px rgba(24, 39, 31, .09);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --max: 1200px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 9% 2%, rgba(169, 239, 135, .24), transparent 25rem),
+        radial-gradient(circle at 94% 10%, rgba(201, 184, 244, .2), transparent 28rem),
+        var(--paper);
+      font-family: var(--sans);
+      line-height: 1.58;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-underline-offset: 4px; }
+    button { font: inherit; }
+    code, pre, .mono { font-family: var(--mono); }
+    :focus-visible { outline: 3px solid #327a51; outline-offset: 4px; }
+    .shell { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+    .skip-link { position: fixed; top: 10px; left: 10px; z-index: 50; padding: 9px 13px; border: 1px solid var(--ink); border-radius: 9px; background: var(--green); transform: translateY(-160%); }
+    .skip-link:focus { transform: translateY(0); }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 24px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 800; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--ink); border-radius: 10px; background: var(--green); box-shadow: 3px 3px 0 var(--ink); font-family: var(--mono); font-size: 18px; }
+    .nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; font-size: 13px; font-weight: 700; }
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover, .nav-links a[aria-current="page"] { text-decoration: underline; }
+    .nav-cta { padding: 9px 13px; border: 1px solid var(--ink); border-radius: 10px; color: var(--surface); background: var(--ink); }
+    .page-links { display: flex; flex-wrap: wrap; gap: 9px 20px; padding: 2px 0 19px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: 10px; font-weight: 780; letter-spacing: .04em; text-transform: uppercase; }
+    .page-links a { text-decoration: none; }
+    .page-links a:hover { color: var(--ink); text-decoration: underline; }
+
+    h1, h2, h3, h4, p { margin-top: 0; }
+    h1 { max-width: 750px; margin: 19px 0 25px; font-size: clamp(55px, 7.8vw, 102px); line-height: .91; letter-spacing: -.068em; text-wrap: balance; }
+    h2 { margin-bottom: 16px; font-size: clamp(40px, 5.3vw, 70px); line-height: .97; letter-spacing: -.055em; text-wrap: balance; }
+    h3 { letter-spacing: -.035em; }
+    .eyebrow, .kicker { margin: 0; font-family: var(--mono); font-size: 12px; font-weight: 820; letter-spacing: .11em; text-transform: uppercase; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; }
+    .eyebrow::before { content: ""; width: 26px; height: 8px; border: 1px solid var(--ink); border-radius: 99px; background: var(--green); }
+
+    .hero { display: grid; grid-template-columns: 1.06fr .94fr; gap: clamp(44px, 7vw, 92px); align-items: center; padding: 76px 0 108px; }
+    .hero-lede { max-width: 720px; margin-bottom: 34px; color: #435149; font-size: clamp(19px, 2.1vw, 23px); text-wrap: balance; }
+    .hero-lede strong { color: var(--ink); }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 47px; padding: 0 18px; border: 1px solid var(--ink); border-radius: 13px; color: var(--surface); background: var(--ink); text-decoration: none; font-size: 14px; font-weight: 780; box-shadow: 4px 4px 0 var(--green); transition: transform .18s ease, box-shadow .18s ease; }
+    .button:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--green); }
+    .button.secondary { color: var(--ink); background: transparent; box-shadow: none; }
+
+    .durable-map { position: relative; display: grid; gap: 12px; padding: 31px; border: 1px solid var(--ink); border-radius: 28px; background: var(--surface); box-shadow: 8px 8px 0 var(--purple); }
+    .map-title { margin-bottom: 5px; color: var(--muted); font-family: var(--mono); font-size: 10px; font-weight: 820; letter-spacing: .08em; text-transform: uppercase; }
+    .map-node { display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; padding: 15px 16px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+    .map-node:nth-child(2) { border-left: 6px solid var(--blue); }
+    .map-node:nth-child(4) { border-left: 6px solid var(--yellow); }
+    .map-node:nth-child(6) { border-left: 6px solid var(--green); }
+    .map-node:nth-child(8) { border-left: 6px solid var(--coral); }
+    .map-node span { font-family: var(--mono); font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
+    .map-node strong { display: block; margin-bottom: 2px; font-size: 15px; }
+    .map-node small { display: block; color: var(--muted); font-size: 11px; }
+    .map-arrow { height: 12px; margin-left: 45px; border-left: 1px dashed rgba(23, 34, 29, .5); }
+    .map-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    .map-note strong { color: var(--ink); }
+
+    section { padding: 96px 0; }
+    .tinted { border-block: 1px solid var(--line); background: rgba(252, 250, 244, .58); }
+    .section-head { display: grid; grid-template-columns: .55fr 1.45fr; gap: 44px; margin-bottom: 44px; }
+    .kicker { margin-top: 8px; }
+    .section-intro { max-width: 820px; margin: 0; color: var(--muted); font-size: 18px; }
+    .section-intro strong { color: var(--ink); }
+
+    .verdict { display: grid; grid-template-columns: .92fr 1.08fr; overflow: hidden; border: 1px solid var(--ink); border-radius: 28px; background: var(--ink); box-shadow: 8px 8px 0 var(--green); }
+    .verdict-answer { padding: 36px; color: var(--surface); }
+    .verdict-answer .kicker { color: var(--green); }
+    .verdict-answer h2 { margin: 18px 0 20px; font-size: clamp(38px, 5vw, 60px); }
+    .verdict-answer p { margin: 0; color: #b9c6be; font-size: 17px; }
+    .verdict-detail { display: grid; gap: 1px; padding: 1px; background: rgba(255, 255, 255, .12); }
+    .verdict-row { padding: 24px 26px; color: var(--ink); background: var(--surface); }
+    .verdict-row strong { display: block; margin-bottom: 6px; font-size: 17px; }
+    .verdict-row p { margin: 0; color: var(--muted); font-size: 13px; }
+    .verdict-row:nth-child(2) { background: #f8efd1; }
+    .verdict-row:nth-child(3) { background: #e7f4fb; }
+
+    .concept-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    .concept { min-height: 225px; padding: 22px; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); }
+    .concept:nth-child(1) { border-top: 5px solid var(--yellow); }
+    .concept:nth-child(2) { border-top: 5px solid var(--purple); }
+    .concept:nth-child(3) { border-top: 5px solid var(--blue); }
+    .concept:nth-child(4) { border-top: 5px solid var(--coral); }
+    .concept:nth-child(5) { border-top: 5px solid var(--green); }
+    .concept code { display: block; margin-bottom: 28px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; }
+    .concept h3 { margin-bottom: 8px; font-size: 20px; }
+    .concept p { margin: 0; color: var(--muted); font-size: 13px; }
+    .concept-equation { margin: 22px 0 0; padding: 22px 25px; border-radius: 18px; color: var(--surface); background: var(--ink); font-size: 16px; }
+    .concept-equation strong { color: var(--green); }
+
+    .artifact-wrap, .table-wrap { overflow-x: auto; border: 1px solid var(--ink); border-radius: 22px; background: var(--surface); box-shadow: 7px 7px 0 var(--blue); }
+    table { width: 100%; min-width: 820px; border-collapse: collapse; }
+    caption { padding: 14px 17px; color: #bcc9c1; background: var(--ink); font-family: var(--mono); font-size: 10px; text-align: left; }
+    thead { color: var(--surface); background: var(--ink); }
+    th { padding: 14px 17px; font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-align: left; text-transform: uppercase; }
+    td { padding: 18px 17px; border-top: 1px solid var(--line); color: #435149; font-size: 13px; vertical-align: top; }
+    tbody th { padding: 18px 17px; border-top: 1px solid var(--line); color: var(--ink); background: rgba(23, 34, 29, .022); font-size: 12px; vertical-align: top; }
+    td strong { display: block; margin-bottom: 4px; color: var(--ink); }
+    td code { font-size: 11px; }
+
+    .fit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+    .fit-card { min-height: 190px; padding: 24px; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); }
+    .fit-card span { display: grid; place-items: center; width: 35px; height: 35px; margin-bottom: 24px; border: 1px solid var(--ink); border-radius: 10px; background: var(--green); font-family: var(--mono); font-weight: 850; }
+    .fit-card h3 { margin-bottom: 8px; font-size: 21px; }
+    .fit-card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .avoid { display: grid; grid-template-columns: .7fr 1.3fr; gap: 28px; align-items: start; margin-top: 24px; padding: 27px; border: 1px solid var(--ink); border-radius: 22px; background: var(--coral); }
+    .avoid h3 { margin: 0; font-size: 27px; }
+    .avoid ul { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; margin: 0; padding-left: 19px; }
+    .avoid li { font-size: 13px; }
+
+    .prompt-card { margin-top: 28px; border: 1px solid #08100c; border-radius: 20px; color: #eaf1eb; background: #14211a; box-shadow: 6px 6px 0 var(--green); }
+    .prompt-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 16px; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+    .prompt-head span { color: var(--green); font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .copy { padding: 6px 10px; border: 1px solid rgba(255, 255, 255, .24); border-radius: 8px; color: #eaf1eb; background: transparent; font-family: var(--mono); font-size: 10px; cursor: pointer; }
+    .copy:hover { border-color: var(--green); color: var(--green); }
+    .prompt-card pre { overflow-x: auto; margin: 0; padding: 21px 22px 24px; white-space: pre-wrap; color: #d5dfd7; font-size: 12px; line-height: 1.7; }
+    .prompt-card code { font: inherit; }
+    .prompt-note { margin: 13px 0 0; color: var(--muted); font-size: 12px; }
+
+    .steps { position: relative; display: grid; gap: 22px; }
+    .steps::before { content: ""; position: absolute; top: 28px; bottom: 28px; left: 30px; border-left: 1px dashed rgba(23, 34, 29, .28); }
+    .step { position: relative; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 24px; scroll-margin-top: 20px; }
+    .step-number { position: sticky; top: 18px; z-index: 2; display: grid; place-items: center; width: 61px; height: 61px; border: 1px solid var(--ink); border-radius: 18px; background: var(--green); box-shadow: 4px 4px 0 var(--ink); font-family: var(--mono); font-size: 14px; font-weight: 900; }
+    .step:nth-child(3n+2) .step-number { background: var(--yellow); }
+    .step:nth-child(3n) .step-number { background: var(--blue); }
+    .step-body { padding: clamp(25px, 4vw, 42px); border: 1px solid var(--line); border-radius: 26px; background: var(--surface); }
+    .step-role { margin-bottom: 8px; color: var(--green-deep); font-family: var(--mono); font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+    .step h3 { margin: 0 0 15px; font-size: clamp(29px, 4vw, 43px); line-height: 1.04; }
+    .step-lede { max-width: 810px; color: var(--muted); font-size: 16px; }
+    .step-lede strong { color: var(--ink); }
+    .step-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 23px; }
+    .mini-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+    .mini-card h4 { margin-bottom: 9px; font-size: 15px; }
+    .mini-card p, .mini-card li { color: var(--muted); font-size: 12px; }
+    .mini-card p:last-child { margin-bottom: 0; }
+    .mini-card ul, .mini-card ol { display: grid; gap: 7px; margin: 0; padding-left: 18px; }
+    .insight { margin: 23px 0 0; padding: 19px 21px; border-left: 6px solid var(--green); border-radius: 0 14px 14px 0; background: rgba(169, 239, 135, .2); }
+    .insight strong { display: block; margin-bottom: 4px; }
+    .insight p { margin: 0; color: #3f4d45; font-size: 13px; }
+    details { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 17px; }
+    summary { cursor: pointer; color: var(--green-deep); font-family: var(--mono); font-size: 11px; font-weight: 850; letter-spacing: .04em; }
+    details p, details li { color: var(--muted); font-size: 12px; }
+    details p { margin: 13px 0 0; }
+
+    .frame-sentence { margin: 22px 0 0; padding: 24px; border: 1px solid var(--ink); border-radius: 18px; background: var(--yellow); font-size: 17px; font-weight: 690; }
+    .frame-sentence span { display: inline-block; border-bottom: 2px dotted rgba(23, 34, 29, .5); }
+
+    .case-table { margin-top: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+    .case-table table { min-width: 700px; }
+    .case-table thead { background: #25322b; }
+    .case-table td { font-size: 12px; }
+
+    .home-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+    .home-plane { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); }
+    .home-plane:nth-child(1) { box-shadow: inset 0 5px 0 var(--yellow); }
+    .home-plane:nth-child(2) { box-shadow: inset 0 5px 0 var(--blue); }
+    .home-plane:nth-child(3) { box-shadow: inset 0 5px 0 var(--green); }
+    .home-plane h4 { margin: 6px 0 9px; font-size: 17px; }
+    .home-plane p { margin: 0; color: var(--muted); font-size: 12px; }
+    .home-plane code { display: block; margin-top: 12px; color: var(--green-deep); font-size: 10px; line-height: 1.8; }
+
+    .autonomy { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; margin-top: 24px; border: 1px solid var(--ink); border-radius: 18px; background: var(--ink); gap: 1px; }
+    .autonomy article { min-height: 155px; padding: 17px; background: var(--surface); }
+    .autonomy article:nth-child(4), .autonomy article:nth-child(5) { background: #f9e1d9; }
+    .autonomy span { color: var(--muted); font-family: var(--mono); font-size: 9px; font-weight: 850; }
+    .autonomy h4 { margin: 15px 0 7px; font-size: 16px; }
+    .autonomy p { margin: 0; color: var(--muted); font-size: 11px; }
+
+    .proof-ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-top: 24px; }
+    .proof { min-height: 190px; padding: 21px; border: 1px solid var(--line); border-radius: 19px; background: var(--paper); }
+    .proof span { font-family: var(--mono); font-size: 9px; font-weight: 850; text-transform: uppercase; }
+    .proof h4 { margin: 24px 0 8px; font-size: 18px; }
+    .proof p { margin: 0; color: var(--muted); font-size: 12px; }
+    .proof:nth-child(1) { border-top: 5px solid var(--blue); }
+    .proof:nth-child(2) { border-top: 5px solid var(--yellow); }
+    .proof:nth-child(3) { border-top: 5px solid var(--purple); }
+    .proof:nth-child(4) { border-top: 5px solid var(--green); }
+
+    .pilot-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 24px; }
+    .pilot-flow span { padding: 10px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-family: var(--mono); font-size: 10px; font-weight: 780; }
+    .pilot-flow b { color: var(--muted); }
+
+    .platform-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .phase-card { padding: 26px; border: 1px solid var(--line); border-radius: 23px; background: var(--surface); }
+    .phase-card .phase-label { color: var(--green-deep); font-family: var(--mono); font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+    .phase-card h3 { margin: 9px 0 17px; font-size: 27px; }
+    .phase-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+    .phase-list li { display: grid; grid-template-columns: 92px 1fr; gap: 13px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .phase-list strong { color: var(--ink); font-family: var(--mono); font-size: 11px; }
+    .platform-note { margin-top: 22px; padding: 22px 24px; border-radius: 18px; color: var(--surface); background: var(--ink); }
+    .platform-note strong { color: var(--green); }
+
+    .readiness { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--ink); border-radius: 22px; background: var(--ink); gap: 1px; }
+    .readiness article { padding: 23px; background: var(--surface); }
+    .readiness article:nth-child(3), .readiness article:nth-child(4) { background: #f9e1d9; }
+    .status { display: inline-block; padding: 4px 7px; border-radius: 6px; background: rgba(169, 239, 135, .55); font-family: var(--mono); font-size: 8px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+    .readiness article:nth-child(3) .status, .readiness article:nth-child(4) .status { background: rgba(244, 168, 143, .62); }
+    .readiness h3 { margin: 20px 0 9px; font-size: 21px; }
+    .readiness p { margin: 0; color: var(--muted); font-size: 12px; }
+
+    .gap-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }
+    .gap-card { position: relative; padding: 27px; border: 1px solid var(--line); border-radius: 23px; background: var(--surface); }
+    .gap-card:first-child { border-color: var(--ink); box-shadow: 6px 6px 0 var(--green); }
+    .gap-priority { display: inline-block; margin-bottom: 20px; padding: 5px 8px; border-radius: 6px; background: var(--yellow); font-family: var(--mono); font-size: 9px; font-weight: 880; letter-spacing: .06em; text-transform: uppercase; }
+    .gap-card h3 { margin-bottom: 11px; font-size: 26px; }
+    .gap-card p { color: var(--muted); font-size: 13px; }
+    .gap-card ul { display: grid; gap: 7px; margin: 0; padding-left: 18px; }
+    .gap-card li { color: var(--muted); font-size: 12px; }
+
+    .research-card { display: grid; grid-template-columns: .75fr 1.25fr; gap: 30px; margin-top: 24px; padding: 30px; border: 1px solid var(--ink); border-radius: 24px; background: var(--purple); }
+    .research-card h3 { margin: 0; font-size: 30px; }
+    .research-card ol { display: grid; gap: 10px; margin: 0; padding-left: 20px; }
+    .research-card li { font-size: 13px; }
+
+    .launch-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .check-item { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 13px; }
+    .check-box { flex: none; width: 19px; height: 19px; border: 1px solid var(--ink); border-radius: 5px; background: var(--paper); }
+    .check-item strong { display: block; margin-bottom: 3px; }
+    .check-item small { display: block; color: var(--muted); font-size: 11px; }
+
+    .sources { display: grid; grid-template-columns: .65fr 1.35fr; gap: 30px; padding: 27px; border: 1px dashed rgba(23, 34, 29, .35); border-radius: 19px; background: rgba(252, 250, 244, .65); }
+    .sources h2 { margin: 0; font-size: 23px; letter-spacing: -.035em; }
+    .sources p { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    .sources p:last-child { margin-bottom: 0; }
+
+    footer { display: flex; justify-content: space-between; gap: 22px; padding: 29px 0 42px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 1000px) {
+      .hero, .verdict { grid-template-columns: 1fr; }
+      .concept-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .autonomy { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .proof-ladder, .readiness { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .shell { width: min(calc(100% - 26px), var(--max)); }
+      .nav { align-items: flex-start; flex-direction: column; }
+      .nav-links { width: 100%; gap: 11px 17px; }
+      .hero { padding: 52px 0 78px; }
+      section { padding: 72px 0; }
+      .section-head, .avoid, .research-card, .sources { grid-template-columns: 1fr; gap: 18px; }
+      .fit-grid, .home-map, .concept-grid, .platform-grid, .gap-grid { grid-template-columns: 1fr; }
+      .step { grid-template-columns: 50px minmax(0, 1fr); gap: 12px; }
+      .steps::before { left: 23px; }
+      .step-number { width: 48px; height: 48px; border-radius: 14px; }
+      .step-grid, .launch-grid { grid-template-columns: 1fr; }
+      .autonomy, .proof-ladder, .readiness { grid-template-columns: 1fr; }
+      .avoid ul { grid-template-columns: 1fr; }
+      .map-node { grid-template-columns: 76px 1fr; }
+      footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .button { transition: none; }
+    }
+
+    @media print {
+      body { background: white; }
+      .nav, .page-links, .actions, .copy, footer { display: none; }
+      .shell { width: 100%; }
+      section { padding: 34px 0; break-inside: avoid; }
+      .hero { min-height: 0; padding: 20px 0 34px; }
+      .step-body, .prompt-card, .gap-card, .phase-card { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="shell nav">
+    <a class="brand" href="index.html"><span class="brand-mark">b</span><span>bench <span style="color:var(--muted)">/ field guide</span></span></a>
+    <nav class="nav-links" aria-label="Site navigation">
+      <a href="index.html">Overview</a>
+      <a href="guide.html" aria-current="page">Build one</a>
+      <a href="components.html">Components</a>
+      <a href="compare.html">Compare</a>
+      <a href="platforms.html">Platforms</a>
+      <a href="https://github.com/patrickyoung/bench/releases/tag/v0.13.0">Release 0.13.0</a>
+      <a class="nav-cta" href="https://github.com/patrickyoung/agent">GitHub ↗</a>
+    </nav>
+  </header>
+  <nav class="shell page-links" aria-label="Guide sections">
+    <a href="#verdict">The verdict</a>
+    <a href="#model">Mental model</a>
+    <a href="#fit">Set up + choose</a>
+    <a href="#build">Build it</a>
+    <a href="#platform">Full platform</a>
+    <a href="#gaps">What is missing</a>
+    <a href="#launch">Launch check</a>
+  </nav>
+
+  <main id="main">
+    <div class="shell hero">
+      <div>
+        <p class="eyebrow">A conversation-first guide for process experts</p>
+        <h1>Build the job, not the prompt.</h1>
+        <p class="hero-lede">If you can train a thoughtful new colleague, you already have the most important ingredient: <strong>judgment about what good work looks like.</strong> In a prepared workspace where Claude Cowork or a similar interface can invoke the pinned suite, use conversation to make that judgment explicit; Bench can then turn it into a durable worker with bounded capabilities, independent checks, and replayable evidence.</p>
+        <div class="actions">
+          <a class="button" href="#fit">Set up and choose the job ↓</a>
+          <a class="button secondary" href="#master-prompt">Copy the builder prompt →</a>
+        </div>
+      </div>
+      <div class="durable-map" aria-label="Conversation to durable agent map">
+        <p class="map-title">The interface is the cockpit. The folder is the worker.</p>
+        <div class="map-node"><span>conversation</span><div><strong>You explain the real process</strong><small>Goals, examples, exceptions, sources, and boundaries.</small></div></div>
+        <div class="map-arrow" aria-hidden="true"></div>
+        <div class="map-node"><span>control plane</span><div><strong>Bench admits—approves and locks—an exact contract</strong><small>The reviewed outcome survives the conversation that created it.</small></div></div>
+        <div class="map-arrow" aria-hidden="true"></div>
+        <div class="map-node"><span>agent home</span><div><strong>Draft builds; Agent runs</strong><small>The agent project folder keeps definition, procedures, work, state, tools, and evidence separate.</small></div></div>
+        <div class="map-arrow" aria-hidden="true"></div>
+        <div class="map-node"><span>proof</span><div><strong>The executable check—not the model—decides done</strong><small>An automatic pass/fail program leaves a verdict and history another person can inspect.</small></div></div>
+        <p class="map-note"><strong>The deep shift:</strong> a chat can disappear without erasing the worker’s identity, obligation, current work, or proof.</p>
+      </div>
+    </div>
+
+    <section class="tinted" id="verdict">
+      <div class="shell">
+        <div class="verdict">
+          <div class="verdict-answer">
+            <p class="kicker">The honest answer</p>
+            <h2>Useful? Yes. Fully self-service? Not yet.</h2>
+            <p>Business experts can define a strong first agent and operate a bounded pilot. Today, they still need a prepared workspace and occasional platform help for executable checks, integrations, credentials, and production operation.</p>
+          </div>
+          <div class="verdict-detail">
+            <div class="verdict-row"><strong>The business owner supplies the scarce part.</strong><p>The outcome, tacit judgment, source precedence, exceptions, risk limits, examples, and the right escalation behavior.</p></div>
+            <div class="verdict-row"><strong>The conversational builder should handle the machinery.</strong><p>Turn the interview into reviewed files, invoke Bench’s Design → Build → Prove path, assemble the agent home, and show evidence in plain language.</p></div>
+            <div class="verdict-row"><strong>The missing bridge is a product layer, not a smarter prompt.</strong><p>We need a first-class conversational lifecycle adapter, no-code case and check authoring, governed connection setup, and an operator cockpit. The underlying control contracts are already unusually strong.</p></div>
+          </div>
+        </div>
+        <div class="step-grid" style="margin-top:24px">
+          <div class="mini-card"><h4>The business owner remains accountable for</h4><p>Job choice, outcome, source authority, decision rules, exceptions, examples, risk limits, escalation, holdout labels, pilot thresholds, and whether the result is useful.</p></div>
+          <div class="mini-card"><h4>A platform steward still owns today</h4><p>Suite/model setup, connector and credential provisioning, executable-check safety, runtime identity and confinement, schedules, budgets, monitoring, incident response, and high-stakes deployment approval.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="model">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">The mental model</p>
+          <div>
+            <h2>An agent is an operating agreement that can work.</h2>
+            <p class="section-intro">A prompt describes behavior. A dependable agent also needs a durable outcome, trustworthy evidence, deliberately granted capabilities, and a separate definition of done. <strong>Each layer answers a different business question.</strong></p>
+          </div>
+        </div>
+        <div class="concept-grid">
+          <article class="concept"><code>01 · outcome</code><h3>What must become true?</h3><p>Name the finished business state, not a vague activity such as “help with finance.”</p></article>
+          <article class="concept"><code>02 · procedure</code><h3>How should it reason?</h3><p>Teach the normal path, exceptions, priorities, and reusable ways of working.</p></article>
+          <article class="concept"><code>03 · evidence</code><h3>What may it trust?</h3><p>Identify authoritative sources, freshness, provenance, and conflict order.</p></article>
+          <article class="concept"><code>04 · authority</code><h3>What may it affect?</h3><p>Separate reading, recommending, drafting, approved actions, and forbidden actions.</p></article>
+          <article class="concept"><code>05 · proof</code><h3>How do we know?</h3><p>Check the result outside the worker; retain cases, verdicts, and run evidence.</p></article>
+        </div>
+        <p class="concept-equation"><strong>Agent quality is multiplicative.</strong> A brilliant procedure with weak evidence, excessive authority, or a hollow check is still a weak agent.</p>
+
+        <div class="section-head" style="margin-top:72px">
+          <p class="kicker">Do not collapse the artifacts</p>
+          <div><h2>Conversation, design, and worker are different things.</h2><p class="section-intro">The Cowork thread is excellent for discovery and steering. It is a poor place to hide the only copy of a long-lived business process.</p></div>
+        </div>
+        <div class="artifact-wrap" tabindex="0" aria-label="Scrollable lifecycle artifact table">
+          <table>
+            <caption>From an idea to a recurring worker · each artifact has one job</caption>
+            <thead><tr><th scope="col">Artifact</th><th scope="col">What it is for</th><th scope="col">What survives</th><th scope="col">What it must not become</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Cowork-style conversation</th><td><strong>Interview and steering surface</strong>Explain the process, answer questions, review proposals, and redirect work.</td><td>The user-authored decisions that are written into reviewed platform artifacts.</td><td>The agent’s only memory, permission system, check, or history.</td></tr>
+              <tr><th scope="row">Admitted Bench contract</th><td><strong>Exact outcome for this build</strong>Deliverables, invariants, evidence, approvals, assumptions, questions, and limits.</td><td>An immutable reviewed revision and its run/result records.</td><td>A reusable worker identity or permission grant hidden in prose.</td></tr>
+              <tr><th scope="row">Draft design</th><td><strong>Build and proof agreement</strong>What will be created, who it serves, what it refuses, and how its check will be tested.</td><td><code>DESIGN.md</code>, build evidence, proof evidence, and verified recovery inputs.</td><td>A live runtime, automatic deployment, or model-authored claim of success.</td></tr>
+              <tr><th scope="row">Agent home</th><td><strong>The built, recurring worker</strong>Standing definition, procedures, tools, mutable work/state, checks, and controller evidence.</td><td>An inspectable directory a compatible prepared runtime can reopen; suite, tool, connector, identity, and check dependencies must travel as recorded requirements.</td><td>A writable blob in which the worker can change its constitution, judge, and receipts.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="tinted" id="fit">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">Before you build</p>
+          <div><h2>Choose a narrow wedge into a real process.</h2><p class="section-intro">The best first agent is not the biggest opportunity. It is the smallest useful job that gives you fast, trustworthy feedback.</p></div>
+        </div>
+        <h3 style="font-size:30px;margin-bottom:8px">Verify the workspace first.</h3>
+        <p class="section-intro">A Cowork-style conversation can prepare business artifacts anywhere. A trustworthy build requires a dedicated workspace and a real path to the Bench suite.</p>
+        <div class="proof-ladder">
+          <article class="proof"><span>Workspace</span><h4>Connect one dedicated folder</h4><p>Use a new agent project with test copies of data—not a broad home, Downloads, or shared production folder.</p></article>
+          <article class="proof"><span>Runtime handshake</span><h4>Verify the Bench path</h4><p>Have the interface report where it executes, which suite version it reaches, and whether work is local, cloud, or managed.</p></article>
+          <article class="proof"><span>Identity</span><h4>Start without secrets</h4><p>Use fixtures and test accounts. Do not paste tokens into chat or store credentials in the folder; connect OAuth later.</p></article>
+          <article class="proof"><span>Source pack</span><h4>Bring process evidence</h4><p>Collect current policies, representative cases, existing outputs, known failures, and the names of decision owners.</p></article>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-head"><span>Workspace handshake</span><button class="copy" type="button" data-copy aria-label="Copy workspace handshake prompt">copy</button></div>
+          <pre><code>Use this dedicated connected folder for the agent project. Before authoring anything, perform a read-only environment check: report where this task executes, whether the pinned Bench suite is available, the Bench and Agent versions, the workspace path, the current model boundary, and which folder, network, connector, and shell capabilities are available. For credentials, report only whether a capability exists and its resource, account identity, and scope—never inspect or print a token, secret, cookie, header, or environment value. Do not install software, authenticate, write outside this folder, or widen permissions. If the full suite is unavailable, stop after creating only the business worksheets and tell me what integration a platform steward must provide.</code></pre>
+        </div>
+        <div class="insight" style="border-left-color:var(--coral);background:rgba(244,168,143,.18)"><strong>A connected folder is organization, not confidentiality.</strong><p>Current local Agent runs use a full host shell inside Cage and may read anything available to that operating-system identity. Before any model-backed run with sensitive material, use a narrow account, container, or VM and scrub ambient secrets. The folder and Cage mainly constrain persistent writes and network—not host reads.</p></div>
+        <div class="section-head" style="margin-top:76px;margin-bottom:34px">
+          <p class="kicker">The first-job filter</p>
+          <div><h2 style="font-size:clamp(34px,4.4vw,58px)">Look for six signs of a good starting point.</h2></div>
+        </div>
+        <div class="fit-grid">
+          <article class="fit-card"><span>1</span><h3>Frequent</h3><p>It happens often enough that a pilot will produce evidence in days or weeks, not quarters.</p></article>
+          <article class="fit-card"><span>2</span><h3>Bounded</h3><p>It has a recognizable trigger, a finite set of inputs, and a clear handoff or deliverable.</p></article>
+          <article class="fit-card"><span>3</span><h3>Observable</h3><p>A knowledgeable person can inspect the result and explain why it is right or wrong.</p></article>
+          <article class="fit-card"><span>4</span><h3>Digitally grounded</h3><p>The required records, policies, and examples are available in files or connected systems.</p></article>
+          <article class="fit-card"><span>5</span><h3>Reversible</h3><p>Early mistakes can be caught before they create financial, legal, customer, or operational harm.</p></article>
+          <article class="fit-card"><span>6</span><h3>Worth repeating</h3><p>The saved effort or improved consistency is meaningful after setup, review, and operating cost.</p></article>
+        </div>
+        <div class="avoid"><h3>Do not start here.</h3><ul><li>“Handle all of finance” or another organization-wide mandate</li><li>A process your team cannot explain consistently</li><li>Rare work with no realistic test cases</li><li>Irreversible payments, publishing, deletion, or access changes</li><li>A politically sensitive judgment with no accountable owner</li><li>A job whose only success signal is that the answer sounds good</li></ul></div>
+        <div class="prompt-card" id="master-prompt">
+          <div class="prompt-head"><span>Paste once into your Cowork-style builder</span><button class="copy" type="button" data-copy aria-label="Copy master builder prompt">copy</button></div>
+          <pre><code>You are my Bench agent builder and operator. Use the installed Bench suite in the connected workspace; do not treat this chat as the agent's durable memory or source of truth.
+
+Work conversation-first, but preserve the platform boundaries. Start in Bench Review mode. Interview me about the job, examples, exceptions, authoritative sources, actions, risks, and proof. Turn my decisions into a visible contract and stop for my review before admitting it.
+
+For a recurring worker, use the full promotion path: Bench contract → Draft design → Build → Prove → Agent home. Keep definition, mutable work/state, the executable check, and controller evidence in separate write domains. Use Brief for reusable procedures, Context and Cite for sourced evidence, MCP and OAuth for reviewed connections, Action for external effects and May when policy requires exact human review, Cage for the worker action boundary, Trail for run inspection, Tend only where crash-durable execution is needed, and Hone only for a verified failed-then-passed recovery.
+
+Begin with no network and read-only or draft-only business functionality. Report every ambient runtime capability, including full shell access, even when the job does not need it. Never store credentials in the agent home. Do not let model prose declare success. Show me the compiled home, the independent check, the holdout-case scorecard, the source/permission register, and every proposed authority increase. Stop when a missing choice, new authority, or consequential action needs me.</code></pre>
+        </div>
+        <p class="prompt-note">If your interface cannot run the installed suite or call a managed Bench integration, it can help prepare the business artifacts but cannot complete the trustworthy build path.</p>
+      </div>
+    </section>
+
+    <section id="build">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">The guided build</p>
+          <div><h2>Eleven stages, in the order that reduces rework.</h2><p class="section-intro">Each stage gives the business owner a focused decision or review and the conversational builder one bounded platform job to perform. The prompts are starting points; answer follow-up questions with real examples.</p></div>
+        </div>
+
+        <div class="steps">
+          <article class="step" id="step-1">
+            <div class="step-number">01</div>
+            <div class="step-body">
+              <p class="step-role">Business owner decides · the accountable outcome</p>
+              <h3>Frame one job as a finished state.</h3>
+              <p class="step-lede">Name what triggers the work, which information is relevant, what must be produced, what success means, and where the agent must stop. <strong>Start from accountability, not personality.</strong></p>
+              <p class="frame-sentence">When <span>[trigger]</span> happens, use <span>[trusted inputs]</span> to produce or do <span>[result]</span>. Success means <span>[evidence]</span>. Never <span>[boundary]</span>. Escalate when <span>[condition]</span>.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Running example</h4><p>When an invoice fails three-way matching, compare the invoice, purchase order, receipt, vendor record, and AP policy. Return the exception type, evidence, recommendation, and a draft message. Never approve or release payment. Escalate suspected duplicates, missing receipts, high-risk vendors, and exceptions over $10,000.</p></div>
+                <div class="mini-card"><h4>What good looks like</h4><ul><li>One trigger, not “whenever useful”</li><li>One primary deliverable or handoff</li><li>Named exclusions and stop conditions</li><li>A result another person can inspect</li></ul></div>
+              </div>
+              <div class="insight"><strong>Why this connects.</strong><p>The outcome will become <code>GOAL.md</code>; its observable parts become the check; its stop conditions become operating instructions; its risky actions become permission boundaries. A vague first sentence creates ambiguity everywhere downstream.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy job framing prompt">copy</button></div>
+                <pre><code>Help me choose and frame one narrow first agent job. Interview me one question at a time about the trigger, inputs, result, success evidence, exclusions, and escalation conditions. Challenge vague words such as “good,” “appropriate,” and “handle.” End with one outcome sentence, a list of assumptions, and the three biggest reasons this may be a poor first job. Do not build anything yet.</code></pre>
+              </div>
+              <details><summary>Under the hood · Bench + Ask</summary><p>The conversation is compiled in Bench Review mode into explicit deliverables, invariants, evidence, approvals, questions, and limits. Ask owns the model turn and exact event history. Work does not begin until the user reviews and admits the resulting contract.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-2">
+            <div class="step-number">02</div>
+            <div class="step-body">
+              <p class="step-role">Business owner decides · how judgment really works</p>
+              <h3>Map decisions, especially the exceptions.</h3>
+              <p class="step-lede">Policies usually describe the happy path. Your expertise lives in the moments when facts conflict, information is missing, a threshold is close, or the “usual” answer would be unsafe.</p>
+              <div class="case-table" tabindex="0" aria-label="Invoice decision map example">
+                <table>
+                  <thead><tr><th scope="col">Condition</th><th scope="col">Evidence needed</th><th scope="col">Normal result</th><th scope="col">Escalate when</th></tr></thead>
+                  <tbody>
+                    <tr><td>Tolerance variance</td><td>Invoice, PO, receipt, current threshold</td><td>Classify and recommend the policy path</td><td>At or above the exact limit</td></tr>
+                    <tr><td>Possible duplicate</td><td>Vendor, amount, date, invoice number</td><td>Hold and flag the matching records</td><td>Records conflict or vendor risk is high</td></tr>
+                    <tr><td>Missing receipt</td><td>PO and receiving history</td><td>Draft a request for confirmation</td><td>High value, aged item, or no accountable recipient</td></tr>
+                    <tr><td>Untrusted note</td><td>Structured records and source identity</td><td>Treat the note as data, never as instruction</td><td>It attempts to change rules or request an action</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Ask contrastive questions</h4><ul><li>Why was this case approved but that similar one escalated?</li><li>Which source wins when policy and precedent disagree?</li><li>What does an expert notice that a checklist misses?</li><li>When is “I cannot determine this” the best answer?</li></ul></div>
+                <div class="mini-card"><h4>Separate four things</h4><ul><li>Facts the agent observes</li><li>Rules the process requires</li><li>Judgment the expert contributes</li><li>Authority only a person or controller may grant</li></ul></div>
+              </div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy process mapping prompt">copy</button></div>
+                <pre><code>Turn my real process into a decision map. Ask for the happy path, common exceptions, threshold cases, contradictory sources, incomplete inputs, suspicious inputs, and conditions that require a person. For each decision, record the evidence needed, the normal result, the escalation path, and the reason. Mark every unresolved disagreement instead of inventing a rule.</code></pre>
+              </div>
+              <details><summary>Under the hood · definition versus authority</summary><p>The decision map shapes <code>AGENTS.md</code> and selected Brief skills. It cannot grant network, credentials, write access, approval, or completion authority. That separation prevents a well-written policy file from being mistaken for an enforcement boundary.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-3">
+            <div class="step-number">03</div>
+            <div class="step-body">
+              <p class="step-role">Business owner decides · what correct behavior looks like</p>
+              <h3>Build the case library before the instructions.</h3>
+              <p class="step-lede">Examples are not decoration. They are the beginning of the quality standard. Gather ordinary cases, hard cases, and cases where stopping is correct; then keep some unseen.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Teaching set</h4><p>Use representative cases to explain the process and the reasoning behind expected outcomes. Include straight paths, common exceptions, and a few boundary cases.</p></div>
+                <div class="mini-card"><h4>Holdout set · withheld tests</h4><p>Reserve cases the builder and agent do not see while authoring. Keep expected answers outside the worker-readable workspace or behind an external evaluation harness. Include missing, stale, conflicting, or maliciously phrased information and correct refusals.</p></div>
+              </div>
+              <div class="insight"><strong>Do not grade fluency.</strong><p>A polished explanation can hide a wrong classification. Record the expected operational result, evidence, allowed action, and escalation—not merely an ideal paragraph.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy case library prompt">copy</button></div>
+                <pre><code>Create a teaching-case worksheet in the workspace with fields for case ID, inputs, expected result, required evidence, allowed action, required escalation, rationale, and risk. Help me add 10–20 varied cases. Create a separate holdout index, but keep its expected answers outside the worker-readable workspace or behind an external evaluation harness. If that separation cannot be enforced, mark the holdout contaminated and do not call its results unseen. Flag coverage gaps by decision branch and risk level.</code></pre>
+              </div>
+              <details><summary>Under the hood · cases become multiple checks</summary><p>Mechanical expectations can become an executable <code>bin/check</code>. Case outcomes become an evaluation oracle. Qualitative judgment becomes a calibrated human rubric. Draft’s Prove stage mutates the built implementation and reports which defects the check fails to catch, so a weak check is less likely to accept a convincing but wrong result.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-4">
+            <div class="step-number">04</div>
+            <div class="step-body">
+              <p class="step-role">Business owner approves · the contract and design</p>
+              <h3>Turn the interview into reviewed build artifacts.</h3>
+              <p class="step-lede">Ask the interface to use Bench’s promotion path. First admit the exact build outcome. Then create a Draft project that says what the agent will do, who it serves, what it refuses, and how the build will be proved.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Review the Bench contract for</h4><ul><li>Concrete deliverables and preserved invariants</li><li>Acceptance evidence tied to the case library</li><li>Open questions and explicit assumptions</li><li>Approval boundaries and hard limits</li></ul></div>
+                <div class="mini-card"><h4>Review the Draft design for</h4><ul><li>The intended user and recurring workflow</li><li>Definition, sources, tools, state, and outputs</li><li>Refusals, escalation, and authority model</li><li>Build check and how Prove will challenge it</li></ul></div>
+              </div>
+              <div class="insight"><strong>There are two approvals because they answer different questions.</strong><p>The contract says “build exactly this.” The design says “this is the system we intend to build and the proof it must survive.” Neither one is the running agent.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy contract and design prompt">copy</button></div>
+                <pre><code>Using our accepted outcome, decision map, and case library, start the full Bench promotion path in Review mode. Draft the exact outcome contract and show it to me in plain language before admission. After I approve it, create a Draft design for this recurring agent. Include users, durable definition, sources, tools, refusals, escalation, state, deliverables, an independent check, and a Prove plan. Stop on unresolved business questions; do not replace them with assumptions.</code></pre>
+              </div>
+              <details><summary>Under the hood · Bench → Draft</summary><p>Bench’s <code>/agent</code> path creates and validates an ordinary Draft project. Draft’s Build loop composes Brief, Ply, and Ask; its executable check decides pass or not done. Prove mutates the implementation to expose gaps in that check. Today, the final bridge from a proved design to a complete Agent home still needs the conversational builder to orchestrate explicit platform commands.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-5">
+            <div class="step-number">05</div>
+            <div class="step-body">
+              <p class="step-role">Business owner reviews · the durable worker</p>
+              <h3>Build an agent home—not a giant prompt.</h3>
+              <p class="step-lede">The builder should scaffold the folder, translate your decisions into small inspectable files, make recurring procedures selectable skills, and keep mutable work away from the definition and evidence.</p>
+              <div class="home-map">
+                <article class="home-plane"><span class="kicker">Governed definition</span><h4>Who it is and what it owes</h4><p>Human-reviewed source, readable by the worker but not writable during a confined run.</p><code>AGENTS.md · GOAL.md · SOUL.md<br>PLAN.md · MEMORY.md · skills/<br>tools/ · agents/ · bin/check · bin/wake</code></article>
+                <article class="home-plane"><span class="kicker">Mutable continuity</span><h4>What it is doing</h4><p>Deliverables and current progress the worker may change without changing its constitution.</p><code>work/ · state/ · state/plan.md<br>work/proposals/<br>work/actions/</code></article>
+                <article class="home-plane"><span class="kicker">Controller evidence</span><h4>What actually happened</h4><p>Run events, verdicts, approvals, and learning receipts outside the worker’s write authority.</p><code>.agent/runs/ · checkpoints/<br>learning/ · amendments/<br>selection records</code></article>
+              </div>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Keep each file narrow</h4><ul><li><code>GOAL.md</code>: durable outcome and stop conditions</li><li><code>AGENTS.md</code>: operating rules and escalation</li><li><code>MEMORY.md</code>: small reviewed facts only</li><li><code>skills/</code>: reusable procedures, selected on demand</li></ul></div>
+                <div class="mini-card"><h4>Inspect before running</h4><ul><li>The exact load order and definition digest</li><li>Available skills, tools, check, and specialists</li><li>Writable roots, network choice, and evidence path</li><li>Anything the interface could not validate offline</li></ul></div>
+              </div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy agent home prompt">copy</button></div>
+                <pre><code>Build the Agent home from the accepted and proved design. Keep the files small and inspectable. Put standing outcome in GOAL.md, operating rules and escalation in AGENTS.md, only curated facts in MEMORY.md, reusable procedures in Brief-compatible skills, deliverables in work/, and progress in state/. Keep the executable check and controller evidence outside worker-writable roots. Run offline validation and show me the exact compiled home, authority, hashes, skills, tools, and check before any model-backed run.</code></pre>
+              </div>
+              <details><summary>Under the hood · Agent + Brief</summary><p><code>agent new</code> scaffolds the home, <code>agent check</code> validates its structure offline, and <code>agent show</code> prints the exact composition without calling a model. <strong>Structure valid does not mean agent ready:</strong> the fresh goal is placeholder text and the fresh check intentionally rejects. Brief owns skill linting and selection. If the job truly needs specialists, each child is another bounded Agent home with its own task, authority, check, work, and evidence—not a hidden copy of the parent conversation. The folder compiles into Ply and Ask rather than introducing a second hidden runtime.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-6">
+            <div class="step-number">06</div>
+            <div class="step-body">
+              <p class="step-role">Business owner approves · sources and blast radius</p>
+              <h3>Connect evidence first; add action last.</h3>
+              <p class="step-lede">For every source or tool, specify why it is needed, what it can read, what it can change, whose identity it uses, and what happens if it is wrong. Start at the lowest autonomy level that creates value.</p>
+              <div class="autonomy" aria-label="Autonomy ladder">
+                <article><span>01 · low risk</span><h4>Explain</h4><p>Read trusted material and summarize with evidence.</p></article>
+                <article><span>02</span><h4>Recommend</h4><p>Classify or propose a decision; a person decides.</p></article>
+                <article><span>03</span><h4>Draft</h4><p>Prepare a report, message, ticket, or change for review.</p></article>
+                <article><span>04</span><h4>Act with approval</h4><p>Bind a person’s exact decision to one exact proposed effect.</p></article>
+                <article><span>05 · earned</span><h4>Bounded automation</h4><p>Only reversible, well-measured actions inside a narrow policy.</p></article>
+              </div>
+              <div class="step-grid">
+                <div class="mini-card"><h4>For information</h4><p><strong>Context</strong> normalizes evidence from a selected connector. <strong>Cite</strong> checks exact evidence identities. <strong>MCP</strong> admits reviewed remote capabilities. <strong>OAuth</strong> keeps resource credentials outside the home and model context.</p></div>
+                <div class="mini-card"><h4>For effects</h4><p>The worker writes an <strong>Action proposal</strong>. Action evaluates the exact proposal through controller policy; policy may allow, deny, or require one-shot <strong>May</strong> review. The controller rechecks relevant state before release. The connector records a receipt—or an explicit unknown effect that must not be retried automatically.</p></div>
+              </div>
+              <div class="insight"><strong>Capability and authority are not the same.</strong><p>A tool appearing in a catalogue means the worker may know it exists. It does not mean a Markdown file, remote page, or model response can grant permission to use it consequentially.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy source and authority prompt">copy</button></div>
+                <pre><code>Create a source and permission register before connecting anything. For every source or tool, list its business purpose, authoritative fields, freshness, conflict priority, read scope, write scope, sensitivity, identity, reversibility, approval rule, and failure behavior. Propose the smallest capability set. Use Context/Cite for evidence, reviewed MCP capability folders for remote tools, OAuth outside the home for credentials, and Action for effects with May when policy requires exact human review. Keep the first pilot read-only or draft-only.</code></pre>
+              </div>
+              <details><summary>Under the hood · Cage is useful but not a complete machine boundary</summary><p>Agent currently gives the worker a full host shell inside Cage by default, with persistent writes limited to work, state, and temporary space and network denied. The same operating-system identity may still expose host-readable files, environment values, credentials, processes, and programs. Cage is not a full confidentiality, credential, identity, resource, or per-task VM boundary. High-stakes unattended operation needs least-authority runtime defaults and the stronger external execution plane described in the platform roadmap.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-7">
+            <div class="step-number">07</div>
+            <div class="step-body">
+              <p class="step-role">Business owner judges · proof, not polish</p>
+              <h3>Build a layered definition of good.</h3>
+              <p class="step-lede">No single check captures the whole business outcome. Use fast mechanical gates, unseen cases, calibrated review, and live measures together. Make sure the check cannot pass merely because an output file exists.</p>
+              <div class="proof-ladder">
+                <article class="proof"><span>Layer 1 · deterministic</span><h4>Shape and invariants</h4><p>Required fields, valid values, thresholds, evidence references, forbidden writes, and exact output location.</p></article>
+                <article class="proof"><span>Layer 2 · case oracle</span><h4>Behavior on holdouts</h4><p>Classification, allowed action, escalation, and evidence match expected outcomes on unseen cases.</p></article>
+                <article class="proof"><span>Layer 3 · human sample</span><h4>Judgment quality</h4><p>A calibrated expert reviews ambiguity, usefulness, tone, and whether cited evidence supports the recommendation.</p></article>
+                <article class="proof"><span>Layer 4 · business</span><h4>Downstream outcome</h4><p>Correction rate, cycle time, avoided risk, adoption, cost, and the effect on the next person in the process.</p></article>
+              </div>
+              <div class="insight"><strong>A passing check is a claim about exactly what it checks.</strong><p>It is not a general certificate of intelligence. Show the business owner which risks are mechanically covered, which are sampled, and which remain assumptions.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy proof prompt">copy</button></div>
+                <pre><code>Design the independent quality gate from our acceptance evidence and holdout cases. Separate deterministic checks, case-oracle expectations, human-scored judgment, and pilot business metrics. Show me exactly what bin/check proves and what it does not. Run Draft Build and Prove; use implementation mutations to challenge verifier coverage; then run our project-owned holdout suite through an external oracle. Run the shipped Agent corpus separately as a platform lifecycle smoke test, never as evidence of business-agent quality. Treat a model's confident explanation as no evidence of completion.</code></pre>
+              </div>
+              <details><summary>Under the hood · Ply + Ask + Draft + Agent eval</summary><p>Ply runs the check before work and after candidate completion, sends rejection evidence back to the worker, and records sealed verdicts through Ask. Draft Prove looks for verifier gaps. Agent’s frozen corpus verifies deterministic lifecycle boundaries; project-owned holdouts and external oracles are still required for model quality and false-success measurement.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-8">
+            <div class="step-number">08</div>
+            <div class="step-body">
+              <p class="step-role">Business owner authorizes · controlled exposure</p>
+              <h3>Pilot by widening one boundary at a time.</h3>
+              <p class="step-lede">Do not jump from sample cases to unattended action. Compare the agent with real work while the cost of being wrong is still low and visible.</p>
+              <div class="pilot-flow" aria-label="Pilot maturity progression"><span>simulation</span><b>→</b><span>shadow mode</span><b>→</b><span>draft only</span><b>→</b><span>action with approval</span><b>→</b><span>bounded automation</span></div>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Define the slice</h4><ul><li>One team, queue, customer group, or transaction type</li><li>A maximum value, volume, or risk class</li><li>A named owner and escalation destination</li><li>A start date, review date, and rollback path</li></ul></div>
+                <div class="mini-card"><h4>Define launch gates first</h4><ul><li>Zero unauthorized effects</li><li>Every high-risk holdout escalates correctly</li><li>Routine-case pass rate meets the agreed threshold</li><li>Corrections and false confidence stay within bounds</li></ul></div>
+              </div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy pilot prompt">copy</button></div>
+                <pre><code>Create a controlled pilot plan that moves from simulation to shadow mode, then draft-only work. Name the population, volume, risk limits, owner, escalation path, success thresholds, stop conditions, review cadence, and rollback. Run the holdout suite before each authority increase. Keep live actions disabled unless I approve a separate, exact Action path.</code></pre>
+              </div>
+              <details><summary>Under the hood · replayable runs</summary><p>Each Agent run keeps an Ask session and verifier receipts under the home’s controller evidence. Named checkpoints can resume a conversation, but the work tree and external check remain authoritative. Trail can list, search, show, window, follow lineage, and replay-check those sessions without creating a shadow history.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-9">
+            <div class="step-number">09</div>
+            <div class="step-body">
+              <p class="step-role">Business owner operates · one visible obligation</p>
+              <h3>Separate running, waking, scheduling, and acting.</h3>
+              <p class="step-lede">These look like one “autonomy” feature from the outside, but they have different failure modes. Keeping them separate is what makes the recurring worker understandable.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Run toward the standing goal</h4><p>A goal run continues the durable obligation until the check accepts or a stop condition requires attention. A checkpoint resumes conversation, not a filesystem snapshot or an uncertain effect.</p></div>
+                <div class="mini-card"><h4>Wake only when something changed</h4><p>An external schedule invokes the heartbeat. A cheap deterministic probe exits quietly before a model call when there is no work.</p></div>
+                <div class="mini-card"><h4>Supervise when interruption matters</h4><p>Tend can make an ordinary local process crash-durable, with explicit lifecycle events and unknown states. It is not a distributed or exactly-once promise.</p></div>
+                <div class="mini-card"><h4>Inspect and approve outside the worker</h4><p>Trail reads evidence; Action applies controller policy to effects and invokes May when human review is required; definition amendments remain reviewed exact patches. The worker does not own any of these verdicts.</p></div>
+              </div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy operations prompt">copy</button></div>
+                <pre><code>Create the operating plan for this home. Separate goal runs, heartbeat behavior, the external schedule, the cheap wake condition, checkpoint use, Tend supervision if needed, action policy and review, evidence review, incident handling, and unresolved-effect reconciliation. Add run budgets, periodic access recertification, and checks for source freshness and connector/schema drift. Show the owner exactly where to see current status, the latest check verdict, pending review, and run history. Do not hide cadence or authority in Markdown.</code></pre>
+              </div>
+              <details><summary>Under the hood · Agent + Tend + Trail + Action</summary><p><code>agent run</code> pursues <code>GOAL.md</code>. <code>agent tick</code> runs <code>bin/wake</code> before heartbeat work; cadence stays external. Tend may supervise a process durably. Trail reads Ask-owned history. Action treats a transmitted-but-unconfirmed effect as explicit uncertainty and forbids automatic retry.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-10">
+            <div class="step-number">10</div>
+            <div class="step-body">
+              <p class="step-role">Business owner governs · changes and learning</p>
+              <h3>Improve from verified recovery, not accumulated chat.</h3>
+              <p class="step-lede">A production agent is a managed business process. When a failure repeats, fix the process, cases, source, skill, or check deliberately; then rerun the holdouts before expanding scope.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Facts</h4><p>Keep only small, current, human-reviewed facts in <code>MEMORY.md</code>. Raw run history remains in Ask sessions and is queried with Trail.</p></div>
+                <div class="mini-card"><h4>Procedures</h4><p>Hone can propose a durable skill lesson only when replayable evidence shows a failure followed by a passing recovery. Exact admission remains a separate review.</p></div>
+                <div class="mini-card"><h4>Definition</h4><p>The worker may propose a one-file patch, but Agent encodes the current definition and exact patch in a one-shot May request, rechecks both, then applies and revalidates.</p></div>
+                <div class="mini-card"><h4>Evaluation</h4><p>Add every important escaped defect to the regression library, preserve holdouts, and compare quality, cost, latency, and escalation after each change.</p></div>
+              </div>
+              <div class="insight"><strong>Learning is a promotion decision.</strong><p>A memorable failure is not automatically a true general rule. Preserve its evidence, prove the recovery, review the proposed lesson, and only then make it part of the next run.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy learning prompt">copy</button></div>
+                <pre><code>Review the latest failed or corrected runs through Trail. Classify each issue as a goal problem, instruction problem, source problem, tool/authority problem, state problem, or check problem. Do not append chat summaries to memory. Where one replayable run failed and a later run passed, prepare a Hone learning proposal for my review. For definition changes, prepare an exact Agent patch and show it before May approval. Rerun all regression and holdout cases after any admitted change.</code></pre>
+              </div>
+              <details><summary>Under the hood · Trail + Hone + May</summary><p>Trail preserves Ask as the authoritative history. Hone replays both failure and recovery evidence and can prepare exact skill bytes without admitting them. Agent amendments bind an exact patch and current definition to a single-use May decision, then validate and receipt the change.</p></details>
+            </div>
+          </article>
+
+          <article class="step" id="step-11">
+            <div class="step-number">11</div>
+            <div class="step-body">
+              <p class="step-role">Business owner closes · authority and evidence</p>
+              <h3>Retire the worker deliberately.</h3>
+              <p class="step-lede">A forgotten schedule, connector, or credential is still authority. Retirement is complete only when new work is stopped, uncertain work is reconciled, access is revoked, and retained evidence has an owner.</p>
+              <div class="step-grid">
+                <div class="mini-card"><h4>Stop new work</h4><p>Disable external schedules and event sources, stop or drain supervised runs, and suspend Action policies and connectors before changing the home.</p></div>
+                <div class="mini-card"><h4>Reconcile open work</h4><p>Review pending decisions and every dispatched or unknown effect. Observe or resolve uncertainty; never turn retirement into an automatic retry.</p></div>
+                <div class="mini-card"><h4>Revoke access</h4><p>Remove OAuth profiles, connector grants, service identities, browser sessions, and shared capability admissions that existed only for this worker.</p></div>
+                <div class="mini-card"><h4>Retain or delete by policy</h4><p>Record the final definition/version, owner, reason, and last verdict. Preserve required receipts; archive or delete sensitive work/state under the organization’s retention rules.</p></div>
+              </div>
+              <div class="insight"><strong>Decommissioning is part of the design.</strong><p>If the owner cannot name how to pause, revoke, reconcile, retain, and delete the agent, the operating model was never complete.</p></div>
+              <div class="prompt-card">
+                <div class="prompt-head"><span>Ask your builder</span><button class="copy" type="button" data-copy aria-label="Copy retirement prompt">copy</button></div>
+                <pre><code>Prepare a retirement plan for this Agent home. Inventory and stop every schedule, trigger, running Tend job, Action policy, connector, OAuth profile, browser/session grant, and shared capability used only by this worker. List pending reviews and unknown effects for human reconciliation; do not retry them. Propose the final evidence archive and the retention/deletion treatment for work, state, cases, and credentials. Record the final definition digest, version, owner, reason, last accepted verdict, and remaining obligations. Show the plan before any revocation or deletion.</code></pre>
+              </div>
+              <details><summary>Under the hood · retirement stays outside the home</summary><p>Schedules, Tend supervision, OAuth profiles, Action policies, connectors, and evidence retention are controller or organizational responsibilities. Editing <code>HEARTBEAT.md</code> or deleting the folder alone does not revoke those external capabilities or settle a possibly-started effect.</p></details>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="tinted" id="platform">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">The full platform path</p>
+          <div><h2>Use every owner you need—never every tool at once.</h2><p class="section-intro">“Full platform” means no guarantee is silently assigned to the model or the interface. Each consequential job has a narrow owner, and a phase invokes only the owners it needs.</p></div>
+        </div>
+        <div class="platform-grid">
+          <article class="phase-card"><span class="phase-label">Discover + admit</span><h3>Turn intent into an exact obligation.</h3><ul class="phase-list"><li><strong>Bench</strong><span>Conversational workbench, reviewed contract, visible authority, and final acceptance.</span></li><li><strong>Ask</strong><span>Selected model boundary and replayable event history; it makes no truth claim.</span></li></ul></article>
+          <article class="phase-card"><span class="phase-label">Design + procedure</span><h3>Make the worker buildable.</h3><ul class="phase-list"><li><strong>Draft</strong><span>Design → Build → Prove path with an executable check and mutation evidence.</span></li><li><strong>Brief</strong><span>Validates and selects reusable Agent Skills without making them completion evidence.</span></li></ul></article>
+          <article class="phase-card"><span class="phase-label">Work + confine</span><h3>Iterate without owning the verdict.</h3><ul class="phase-list"><li><strong>Ply</strong><span>Checked action loop; returns rejection evidence until the external check accepts.</span></li><li><strong>Cage</strong><span>Current host write/network boundary around model-authored actions.</span></li><li><strong>Agent</strong><span>Compiles and runs the folder-shaped worker, checkpoints, specialists, proposals, and evidence roots.</span></li></ul></article>
+          <article class="phase-card"><span class="phase-label">Read + connect</span><h3>Bring evidence and capabilities through explicit edges.</h3><ul class="phase-list"><li><strong>Context</strong><span>Normalizes records from one caller-selected evidence connector.</span></li><li><strong>Cite</strong><span>Checks exact evidence-reference and URL identity without pretending to judge meaning.</span></li><li><strong>MCP</strong><span>Discovers, digest-admits, calls, and serves protocol capabilities as programs.</span></li><li><strong>OAuth</strong><span>Refreshes and passes one resource-bound credential to one exact child, outside the home.</span></li></ul></article>
+          <article class="phase-card"><span class="phase-label">Approve + affect</span><h3>Keep intended real-world effects outside model authority.</h3><ul class="phase-list"><li><strong>Action</strong><span>Evaluates a strict effect proposal through policy and, when required, one-shot May review before connector execution and typed receipts.</span></li><li><strong>May</strong><span>Binds one human allow or deny decision to one exact action/job request and spends a matching grant once; the caller owns state encoding and rechecks.</span></li></ul></article>
+          <article class="phase-card"><span class="phase-label">Operate + improve</span><h3>Survive interruption without inventing history.</h3><ul class="phase-list"><li><strong>Tend</strong><span>Crash-durable local process supervision with explicit unknown outcomes.</span></li><li><strong>Trail</strong><span>Read-only search, projection, lineage, and replay checks over Ask history.</span></li><li><strong>Hone</strong><span>Reviewed procedural learning from replay-verified fail→pass recovery.</span></li></ul></article>
+        </div>
+        <p class="platform-note"><strong>The Cowork-style interface sits above this map.</strong> It should translate business conversation into these explicit operations and render their artifacts. It must not replace their contracts with a hidden chat workflow or claim that the interface’s own sandbox, approvals, memory, or task history automatically supplies Bench’s proof.</p>
+      </div>
+    </section>
+
+    <section id="gaps">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">Can business users really do this?</p>
+          <div><h2>The substrate is strong. The self-service bridge is incomplete.</h2><p class="section-intro">A capable conversational interface can hide command syntax. It cannot safely invent checks, source authority, credentials, deployment policy, or the product workflow. Those need explicit first-class experiences.</p></div>
+        </div>
+        <div class="readiness">
+          <article><span class="status">ready with setup</span><h3>Useful prototype</h3><p>A process expert can build a read-only, recommendation, or draft agent in a prepared workspace with representative cases.</p></article>
+          <article><span class="status">shared ownership</span><h3>Controlled pilot</h3><p>Yes—with a named business owner and a platform steward for checks, connections, identities, and operating setup.</p></article>
+          <article><span class="status">not self-service</span><h3>Business-only build</h3><p>Not end to end today. The CLI/TUI contracts are inspectable, but the guided interview → eval → home bridge remains manual.</p></article>
+          <article><span class="status">not the current claim</span><h3>High-stakes unattended</h3><p>Do not imply this from Cage or a Cowork session. The sealed task machine, workload identity, credential proxy, and durable effect plane remain roadmap work.</p></article>
+        </div>
+
+        <div class="gap-grid">
+          <article class="gap-card"><span class="gap-priority">P0 · biggest bridge</span><h3>A native conversational lifecycle adapter</h3><p>Package the full path as high-level, typed operations inside Cowork-like environments—without making raw shell the primary UX.</p><ul><li>Interview → draft contract → review → exact admission</li><li>Create/check Draft design → Build → Prove</li><li>Create/show/check/run Agent home</li><li>Render artifacts, diffs, checks, evidence, and safe next actions</li><li>Detect whether execution is local, cloud, or unavailable before promising a build</li></ul></article>
+          <article class="gap-card"><span class="gap-priority">P0 · quality</span><h3>No-code cases, checks, and readiness</h3><p>Let users author expected outcomes in a table, compile transparent gates, and distinguish a valid scaffold from a deployable agent.</p><ul><li>Teaching/holdout separation and coverage view</li><li>Rubrics for judgment plus mechanical invariants</li><li>False-success, escalation, adversarial, and mutation cases</li><li>Visible states: scaffolded → structure valid → check proved → eval passed → authority reviewed → pilot ready</li><li>Detect stock placeholders, constant checks, and regression after changes</li></ul></article>
+          <article class="gap-card"><span class="gap-priority">P0 · authority</span><h3>A source and capability wizard</h3><p>Turn business objects—not APIs—into a reviewed register of evidence, actions, identities, risk, and resource limits.</p><ul><li>Authoritative source order and freshness</li><li>Plain-language read/write/sensitivity classification</li><li>Toolbox-only default; full shell and network are explicit reviewed grants</li><li>Time, turn, cost, and effect-count budgets before every run</li><li>Scoped MCP/OAuth setup plus Action policy, conditional May review, and unknown-effect handling</li></ul></article>
+          <article class="gap-card"><span class="gap-priority">P1 · operations</span><h3>An owner’s cockpit</h3><p>One home view should answer: what does it owe, what can it do, what happened, what is waiting, and is quality changing?</p><ul><li>Owner, schedule, current goal/state, and last accepted run</li><li>Pending decisions, action proposals, and unresolved effects</li><li>Run lineage, source use, cost, latency, correction, and escalation</li><li>Version/eval comparison and safe rollback</li></ul></article>
+          <article class="gap-card"><span class="gap-priority">P1 · onboarding</span><h3>Business process starter kits</h3><p>Provide opinionated templates for common bounded jobs while keeping the generated home inspectable.</p><ul><li>One-page brief, decision table, case worksheet, and source register</li><li>Invoice exception, research brief, queue triage, and recurring report examples</li><li>Role-specific vocabulary and prebuilt risk questions</li><li>Clear handoff points for a platform steward</li></ul></article>
+          <article class="gap-card"><span class="gap-priority">platform roadmap</span><h3>The stronger execution plane</h3><p>For consequential unattended work, finish the boundary around the worker rather than relying on interface-level confidence.</p><ul><li>Signed capability locks and per-task sealed runtime</li><li>Workload identity and credential/effect proxies</li><li>Default-deny egress, quotas, and durable external evidence</li><li>Crash recovery that never retries an unknown effect automatically</li></ul></article>
+        </div>
+
+        <div class="research-card"><h3>Test ownership, not just creation.</h3><div><ol><li>Ask a process expert to build an agent for a job they personally own.</li><li>Give them an unfamiliar failure and see whether they can diagnose the bad layer: outcome, procedure, evidence, authority, state, or proof.</li><li>Change a policy and see whether they can update the agent without regressing the holdout set.</li></ol><p style="margin:16px 0 0;font-size:12px">Measure time to a testable home, unseen-case performance, safe escalation, permission mistakes, ability to explain a failure from evidence, regression after change, and whether user confidence matches actual quality. A polished demo is not the success metric; sustained ownership is.</p></div></div>
+      </div>
+    </section>
+
+    <section class="tinted" id="launch">
+      <div class="shell">
+        <div class="section-head">
+          <p class="kicker">Pilot readiness</p>
+          <div><h2>Do not launch until every box has an owner.</h2><p class="section-intro">Print this page or use the checklist during the final review. A “not applicable” decision should be explicit, not silently skipped.</p></div>
+        </div>
+        <div class="launch-grid">
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The job is narrow and accountable.</strong><small>Trigger, result, evidence, boundaries, and escalation are explicit.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The real process is mapped.</strong><small>Normal paths, exceptions, thresholds, conflicting sources, and unknowns are covered.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Teaching and holdout cases are separate.</strong><small>The holdout set includes incomplete, stale, conflicting, and hostile inputs.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The contract and design were reviewed.</strong><small>Open questions were answered or deliberately left as stop conditions.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The compiled home was inspected.</strong><small>Definition, skills, tools, writable roots, authority, evidence path, and hashes are visible.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Sources and connections are governed.</strong><small>Priority, freshness, identity, sensitivity, scope, and credential handling are recorded.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The check proves something meaningful.</strong><small>Draft Prove challenged it; the limits of its claim are documented.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Every intended external effect uses controller-owned Action.</strong><small>Ambient host powers were removed or explicitly accepted; proposal, policy, conditional exact review, connector, receipts, and unknown effects have owners.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>The pilot is a controlled slice.</strong><small>Population, volume, risk, thresholds, review date, stop rule, and rollback are set.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Operation is explicit.</strong><small>Run, wake, schedule, checkpoint, supervision, evidence review, and incident handling are distinct.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>A named business owner remains accountable.</strong><small>The agent does not become the owner merely because it performs the work.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Changes trigger regression.</strong><small>New failures become cases; facts, procedures, definition, and checks follow separate review paths.</small></div></div>
+          <div class="check-item"><span class="check-box" aria-hidden="true"></span><div><strong>Retirement has a tested owner and path.</strong><small>Schedules, effects, access, evidence retention, sensitive state, and final accountability can be closed deliberately.</small></div></div>
+        </div>
+        <div class="prompt-card">
+          <div class="prompt-head"><span>Final review prompt</span><button class="copy" type="button" data-copy aria-label="Copy final review prompt">copy</button></div>
+          <pre><code>Audit this Agent home against the pilot-readiness checklist in this guide. Use only the admitted definition, source/permission register, evaluation cases and results, compiled Agent view, and replayable platform evidence. For each item, report pass, fail, or unknown with the exact artifact that supports the answer. Do not infer safety or quality from model prose. End with the smallest next action that would resolve each fail or unknown, and stop before changing authority.</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell sources">
+        <h2>Scope and interface assumption</h2>
+        <div>
+          <p>This guide assumes a Cowork-style environment that can work in a dedicated folder and invoke either a locally installed or managed Bench integration. Claude Cowork is one example, not a required provider. Its current product model supports delegated multi-step work, connected files and tools, visibility while work runs, parallel subtasks, and scheduled tasks; its execution and connector permissions remain an outer interface layer.</p>
+          <p>Product details: <a href="https://claude.com/product/cowork">Claude Cowork ↗</a> · <a href="https://support.claude.com/en/articles/13364135-use-claude-cowork-safely">Cowork safety guidance ↗</a>. Bench’s exact current contracts: <a href="components.html">component map</a> · <a href="platforms.html">platform map</a> · <a href="https://github.com/patrickyoung/bench/blob/main/FILESYSTEM_AGENTS.md">agent-home design ↗</a> · <a href="https://github.com/patrickyoung/bench/blob/main/DIGITAL_WORKER.md">current and target boundary ↗</a>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell"><span>Bench 0.13.0 · Agent 0.2.1 · conversation-first builder field guide</span><span class="mono">expertise → contract → design → home → evidence</span></footer>
+
+  <script>
+    for (const button of document.querySelectorAll('[data-copy]')) {
+      button.addEventListener('click', async () => {
+        const code = button.closest('.prompt-card')?.querySelector('code');
+        if (!code) return;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(code.textContent.trim());
+          } else {
+            const fallback = document.createElement('textarea');
+            fallback.value = code.textContent.trim();
+            fallback.style.position = 'fixed';
+            fallback.style.opacity = '0';
+            document.body.appendChild(fallback);
+            fallback.select();
+            document.execCommand('copy');
+            fallback.remove();
+          }
+          button.textContent = 'copied';
+        } catch {
+          button.textContent = 'copy failed';
+        }
+        window.setTimeout(() => { button.textContent = 'copy'; }, 1400);
+      });
+    }
+  </script>
+</body>
+</html>

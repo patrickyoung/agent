@@ -22,6 +22,10 @@ ledger. Those are the important outer-system boundaries.
 
 For the architecture at a glance, open the
 [one-page visual explainer](https://patrickyoung.github.io/agent/). The
+[conversation-first builder guide](https://patrickyoung.github.io/agent/guide.html)
+shows a business process expert how to move from a Cowork-style interview to a
+reviewed contract, proved design, durable Agent home, controlled pilot, and
+operating loop. The
 [sixteen-component map](https://patrickyoung.github.io/agent/components.html)
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
