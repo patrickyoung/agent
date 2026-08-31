@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "bench-system-builder",
+  "displayName": "Bench System Builder",
+  "description": "Design, build, prove, operate, and retire governed Bench agents from Claude Code or Cowork without reading the Bench source repositories.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Patrick Young"
+  },
+  "homepage": "https://patrickyoung.github.io/agent/guide.html",
+  "repository": "https://github.com/patrickyoung/agent",
+  "license": "MIT",
+  "keywords": [
+    "bench",
+    "agents",
+    "business-process",
+    "evaluation",
+    "governance"
+  ]
+}

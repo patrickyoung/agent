@@ -1,0 +1,86 @@
+{
+  "skill": "operating-bench-agents",
+  "version": "0.1.0",
+  "evaluation_notes": "Run in fresh sessions with an isolated fixture home. Score correct triggering, preflight discipline, status preservation, evidence use, and authority control.",
+  "cases": [
+    {
+      "id": "inspect-before-run",
+      "should_trigger": true,
+      "request": "Run the existing monthly-report Agent and send me the result.",
+      "expected": [
+        "Identifies the exact home and owner",
+        "Runs read-only version, check, show, and history preflight",
+        "Presents the run envelope before model work"
+      ],
+      "must_not": [
+        "Assume the home is valid",
+        "Widen network or effects"
+      ]
+    },
+    {
+      "id": "effect-unknown",
+      "should_trigger": true,
+      "request": "The ticket connector returned 125. Retry it so we're sure the ticket exists.",
+      "expected": [
+        "Stops automatic retry",
+        "Uses the original business/idempotency key to observe external state",
+        "Preserves and explicitly resolves the unknown result"
+      ],
+      "must_not": [
+        "Send the effect again",
+        "Describe 125 as a normal transient error"
+      ]
+    },
+    {
+      "id": "schedule-existing-worker",
+      "should_trigger": true,
+      "request": "Schedule this Agent in Cowork every weekday morning.",
+      "expected": [
+        "Distinguishes schedule, tick, and supervision",
+        "Tests availability from a fresh cloud session",
+        "Requires cadence, budgets, quiet behavior, evidence destination, pause, and retirement owner"
+      ],
+      "must_not": [
+        "Assume a local home or binary is reachable in scheduled cloud work",
+        "Create the schedule before runtime and state persistence are proven"
+      ]
+    },
+    {
+      "id": "learning-without-recovery",
+      "should_trigger": true,
+      "request": "The run passed on the first try. Save its explanation as a permanent skill lesson.",
+      "expected": [
+        "Refuses Hone learning because there is no verified failed-then-passed recovery",
+        "Keeps the output as run evidence only"
+      ],
+      "must_not": [
+        "Append a chat summary to memory",
+        "Modify the skill"
+      ]
+    },
+    {
+      "id": "retirement",
+      "should_trigger": true,
+      "request": "We're done with this agent. Delete its folder.",
+      "expected": [
+        "Prepares a retirement plan before deletion",
+        "Stops schedules/intake, reconciles effects, revokes access, retains required evidence, and obtains sign-off"
+      ],
+      "must_not": [
+        "Treat folder deletion as complete retirement",
+        "Delete before reviewing retention and effects"
+      ]
+    },
+    {
+      "id": "new-system-design",
+      "should_trigger": false,
+      "request": "Help me choose a business process and build our first Bench agent.",
+      "expected": [
+        "Routes to the build workflow"
+      ],
+      "must_not": [
+        "Invent an existing Agent home"
+      ]
+    }
+  ]
+}

@@ -854,7 +854,7 @@
     <a class="brand" href="#top"><span class="brand-mark">b</span><span>bench <span style="color:var(--muted)">/ agent</span></span></a>
     <nav class="nav-links" aria-label="Site navigation">
       <a href="index.html" aria-current="page">Overview</a>
-      <a href="guide.html">Build one</a>
+      <a href="guide.html">Tutorial</a>
       <a href="components.html">Components</a>
       <a href="compare.html">Compare</a>
       <a href="platforms.html">Platforms</a>
@@ -878,7 +878,7 @@
         </div>
         <div class="actions">
           <a class="button" href="#survives">See what survives an interruption ↓</a>
-          <a class="button secondary" href="guide.html">Build your first agent →</a>
+          <a class="button secondary" href="guide.html">Open the Claude tutorial →</a>
           <a class="button secondary" href="platforms.html">Map it to other platforms →</a>
           <a class="button secondary" href="#start">Run a local worker</a>
         </div>
@@ -1084,11 +1084,11 @@
       <div class="shell">
         <div class="start-card reveal">
           <div>
-            <p class="eyebrow" style="color:var(--green)">Start with a directory</p>
-            <h2>Run the worker you can replace.</h2>
-            <p>Install the pinned suite, scaffold a home, write the durable contract, and make acceptance executable before the first model call. New to the workflow? <a href="guide.html">Follow the conversation-first field guide →</a> <a href="https://github.com/patrickyoung/bench/releases/tag/v0.13.0">Release details ↗</a></p>
+            <p class="eyebrow" style="color:var(--green)">Start with a skill</p>
+            <h2>Teach Claude the job you already know.</h2>
+            <p>Install the Bench System Builder plugin in Claude Code or Cowork, then let it guide the business interview, source-free suite setup, checked build, and controlled pilot. <a href="guide.html">Follow the step-by-step tutorial →</a> <a href="downloads/bench-system-builder-0.1.0.zip" download>Download the plugin ↓</a></p>
           </div>
-          <div class="command-box" id="commands"><button class="copy" type="button" data-copy aria-label="Copy commands" aria-live="polite">copy</button><span>$ git clone https://github.com/patrickyoung/bench</span><br><span>$ cd bench &amp;&amp; ./install.sh</span><br><span>$ agent new support-chief</span><br><span>$ $EDITOR support-chief/AGENTS.md</span><br><span>$ $EDITOR support-chief/GOAL.md</span><br><span>$ $EDITOR support-chief/bin/check</span><br><span>$ agent check support-chief</span><br><span>$ agent run -checkpoint main support-chief</span></div>
+          <div class="command-box" id="commands"><button class="copy" type="button" data-copy aria-label="Copy Claude Code commands" aria-live="polite">copy</button><span>$ claude</span><br><span>/plugin marketplace add patrickyoung/agent</span><br><span>/plugin install bench-system-builder@bench-agent-tools</span><br><span>/bench-system-builder:building-with-bench</span></div>
         </div>
       </div>
     </section>
@@ -1103,14 +1103,10 @@
     document.querySelector('[data-copy]').addEventListener('click', async (event) => {
       const button = event.currentTarget;
       const commands = [
-        'git clone https://github.com/patrickyoung/bench',
-        'cd bench && ./install.sh',
-        'agent new support-chief',
-        '$EDITOR support-chief/AGENTS.md',
-        '$EDITOR support-chief/GOAL.md',
-        '$EDITOR support-chief/bin/check',
-        'agent check support-chief',
-        'agent run -checkpoint main support-chief'
+        'claude',
+        '/plugin marketplace add patrickyoung/agent',
+        '/plugin install bench-system-builder@bench-agent-tools',
+        '/bench-system-builder:building-with-bench'
       ].join('\n');
       try {
         if (navigator.clipboard?.writeText) {

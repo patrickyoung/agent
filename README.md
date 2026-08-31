@@ -22,10 +22,10 @@ ledger. Those are the important outer-system boundaries.
 
 For the architecture at a glance, open the
 [one-page visual explainer](https://patrickyoung.github.io/agent/). The
-[conversation-first builder guide](https://patrickyoung.github.io/agent/guide.html)
-shows a business process expert how to move from a Cowork-style interview to a
+[Claude Code and Cowork tutorial](https://patrickyoung.github.io/agent/guide.html)
+shows a business process expert how to move from a guided interview to a
 reviewed contract, proved design, durable Agent home, controlled pilot, and
-operating loop. The
+operating loop without reading the Bench source repositories. The
 [sixteen-component map](https://patrickyoung.github.io/agent/components.html)
 compares every released Bench component with prominent 2026 systems that solve
 the same class of problem, shows the conventional industry stack for each
@@ -41,6 +41,29 @@ Tend, and Draft; the pinned `mcp` and `oauth` edges add reviewed protocol and
 authorization boundaries. Context retrieves normalized external evidence
 through executable connectors; Cite is the separate deterministic filter that
 accepts only exact Context ref-to-URL Markdown citations.
+
+## Claude Code and Cowork skills
+
+The versioned [`bench-system-builder`](plugins/bench-system-builder) plugin
+contains three Agent Skills:
+
+- `building-with-bench` for process discovery through controlled-pilot readiness;
+- `operating-bench-agents` for runs, incidents, safe change, and retirement;
+- `stewarding-bench-platform` for source-free suite installation, compatibility,
+  connections, credentials, and platform controls.
+
+Install it in Claude Code from this repository's marketplace:
+
+```text
+/plugin marketplace add patrickyoung/agent
+/plugin install bench-system-builder@bench-agent-tools
+```
+
+Cowork users can download the complete plugin or an individual skill from the
+[tutorial download section](https://patrickyoung.github.io/agent/guide.html#downloads).
+Checksums are published in [`docs/downloads/SHA256SUMS`](docs/downloads/SHA256SUMS).
+The skills carry the Bench method and versioned public-command contracts; they
+do not embed the Bench runtime or silently grant execution authority.
 
 ```sh
 agent new support-chief
