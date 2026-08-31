@@ -856,8 +856,9 @@
       <a href="index.html" aria-current="page">Overview</a>
       <a href="components.html">Components</a>
       <a href="compare.html">Compare</a>
+      <a href="platforms.html">Platforms</a>
       <a href="https://github.com/patrickyoung/bench/releases/tag/v0.13.0">Release 0.13.0</a>
-      <a class="button secondary" href="https://github.com/patrickyoung/agent">GitHub ↗</a>
+      <a class="button" href="https://github.com/patrickyoung/agent">GitHub ↗</a>
     </nav>
   </header>
 
@@ -867,7 +868,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Unix-native control plane for verifiable digital workers</p>
         <h1>The execution can disappear. The obligation does not.</h1>
-        <p class="hero-lede"><strong>Bench keeps the contract, caller-owned authority, replayable event history, and definition of done outside any one run.</strong> A fresh execution can reconstruct the recorded request history, resume the named session, and keep working—without letting the model rewrite the rules of success.</p>
+        <p class="hero-lede"><strong>Bench externalizes the meaningful agent—definition, memory, skills, specialists, work, state, events, effects, authority, and the definition of done—outside any one run.</strong> A fresh execution reopens that durable home and continues; it does not start as a blank agent.</p>
         <div class="principles" aria-label="Core principles">
           <span class="pill">model output proposes</span>
           <span class="pill">humans authorize</span>
@@ -876,24 +877,27 @@
         </div>
         <div class="actions">
           <a class="button" href="#survives">See what survives an interruption ↓</a>
+          <a class="button secondary" href="platforms.html">Map it to other platforms →</a>
           <a class="button secondary" href="#start">Run a local worker</a>
         </div>
       </div>
 
       <div class="survival-wrap" aria-label="The commitments that survive a worker replacement">
         <div class="survival-frame">
-          <div class="survival-head"><span>controller-owned</span><span>durable</span></div>
+          <div class="survival-head"><span>durable agent home</span><span>three persistent domains</span></div>
           <div class="commitment-strip">
-            <div class="commitment"><code>GOAL.md</code><span>the admitted contract</span></div>
-            <div class="commitment"><code>authority</code><span>caller-granted limits</span></div>
-            <div class="commitment"><code>.agent/runs/</code><span>the evidence chain</span></div>
+            <div class="commitment"><code>definition files</code><span>goal · identity · curated memory</span></div>
+            <div class="commitment"><code>skills/ + agents/</code><span>procedures · specialist homes</span></div>
+            <div class="commitment"><code>work/ + state/</code><span>artifacts · operational memory</span></div>
+            <div class="commitment"><code>.agent/</code><span>events · checkpoints · receipts</span></div>
+            <div class="commitment"><code>authority + effects</code><span>caller limits · explicit uncertainty</span></div>
             <div class="commitment"><code>bin/check</code><span>definition of done</span></div>
           </div>
           <div class="boundary">execution boundary</div>
           <div class="worker-stage">
-            <div class="worker old"><small>execution 01 · exit 137</small><strong>Process memory gone.</strong><span>Its authoritative events remain.</span></div>
-            <div class="handoff"><b>→</b>same obligation</div>
-            <div class="worker fresh"><small>execution 02 · resumed</small><strong>History reconstructed.</strong><span>Same contract, authority limits, named session, and check.</span></div>
+            <div class="worker old"><small>execution 01 · exit 137</small><strong>Process memory gone.</strong><span>The durable agent home remains.</span></div>
+            <div class="handoff"><b>→</b>same agent</div>
+            <div class="worker fresh"><small>execution 02 · resumed</small><strong>Continuity restored.</strong><span>Definition, work, state, history, authority, and check are reopened.</span></div>
           </div>
           <div class="survival-verdict"><strong>✓ verifier exits 0</strong><span>the worker does not grade itself</span></div>
           <div class="survival-status"><strong>Ships now:</strong> the semantic control plane on a Unix host. <strong>Next:</strong> a sealed, replaceable Linux task VM.</div>
@@ -906,8 +910,8 @@
         <div class="section-head reveal">
           <p class="section-kicker">01 / The click</p>
           <div>
-            <h2>The execution can stop. The event history does not.</h2>
-            <p class="section-intro">A worker execution can stop. Bench keeps the independently owned facts needed to continue and judge it: the accepted contract, its authority limits, the event history, and the executable check. Ask can reconstruct and verify the normalized request history from those events; a named checkpoint resumes that same session.</p>
+            <h2>The process can stop. The agent home does not.</h2>
+            <p class="section-intro">Bench keeps the governed definition, curated memory, skills, specialist homes, mutable work and state, independently written evidence, effect state, authority limits, and executable check. Ask reconstructs the normalized request history; a named checkpoint resumes that same session. Only the live compute and process-local scratch are replaceable.</p>
           </div>
         </div>
 
