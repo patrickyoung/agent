@@ -3,243 +3,156 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The sixteen Bench components, the Unix capabilities their eighteen commands compose, and precise comparisons with prominent 2026 agent systems.">
-  <title>Bench — a Unix agent system in 2026</title>
+  <meta name="description" content="The exact contracts, boundaries, commands, and durable outputs of the sixteen components in Bench 0.13.0.">
+  <meta property="og:title" content="Bench — sixteen explicit owners">
+  <meta property="og:description" content="Every consequential job in the Bench control plane has a narrow, replaceable owner.">
+  <meta property="og:type" content="website">
+  <title>Bench — component contract map</title>
   <style>
     :root {
-      --ink: #10231b;
-      --muted: #617269;
-      --paper: #f6f2e8;
-      --card: #fffdf7;
-      --line: #d6d0c2;
-      --green: #116149;
-      --green-soft: #dcece4;
-      --cyan: #146b73;
-      --amber: #9a5c13;
-      --blue-soft: #e1edf2;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ink: #17221d; --muted: #627069; --paper: #f4f1e8; --surface: #fcfaf4;
+      --line: rgba(23, 34, 29, .15); --green: #a9ef87; --green-deep: #275d3a;
+      --yellow: #f6d76d; --blue: #a9d8f4; --coral: #f4a88f;
+      --shadow: 0 20px 60px rgba(24, 39, 31, .09);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --max: 1220px;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); line-height: 1.55; }
-    a { color: var(--cyan); text-underline-offset: 3px; }
-    code { font-family: var(--mono); font-size: .9em; background: #ebe7dc; border-radius: 4px; padding: .08em .3em; }
-    .shell { width: min(1240px, calc(100% - 40px)); margin-inline: auto; }
-    .nav { display: flex; align-items: center; justify-content: space-between; min-height: 72px; border-bottom: 1px solid var(--line); }
-    .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-family: var(--mono); text-decoration: none; font-weight: 700; }
-    .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; color: white; background: var(--green); border-radius: 50%; }
-    .nav-links { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
-    .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; }
-    .hero { padding: 76px 0 54px; border-bottom: 1px solid var(--line); }
-    .eyebrow, .kicker { color: var(--green); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-    h1 { max-width: 920px; margin: 12px 0 18px; font-size: clamp(44px, 7vw, 84px); line-height: .98; letter-spacing: -.045em; }
-    .lede { max-width: 850px; margin: 0; color: var(--muted); font-size: clamp(18px, 2.1vw, 24px); }
-    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
-    .meta span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; color: var(--muted); font-family: var(--mono); font-size: 11px; }
-    section { padding: 62px 0; }
-    .section-head { display: grid; grid-template-columns: 190px 1fr; gap: 38px; margin-bottom: 30px; }
-    h2 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 50px); line-height: 1.05; letter-spacing: -.03em; }
-    .section-intro { max-width: 820px; margin: 0; color: var(--muted); font-size: 17px; }
-    .method { padding: 20px 22px; border-left: 4px solid var(--amber); background: #f1e6d4; color: #62461f; }
-    .method strong { display: block; margin-bottom: 5px; }
-    .systems { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .system { padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-    .system:first-child { grid-column: 1 / -1; color: white; background: var(--ink); }
-    .system:first-child p { color: #c9d6cf; }
-    .system h3 { margin: 7px 0 10px; font-size: 22px; }
-    .system p { margin: 0; color: var(--muted); }
-    .system .boundary { display: block; margin-top: 12px; color: var(--amber); font-family: var(--mono); font-size: 11px; }
-    .system:first-child .boundary { color: #8fd4d7; }
-    .map { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
-    .map-head, .component-row { display: grid; grid-template-columns: 1.05fr 1.35fr 1.3fr 1.45fr; }
-    .map-head { color: white; background: var(--ink); font-family: var(--mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
-    .map-head div, .component-row > div { padding: 17px 18px; }
-    .component-row { border-top: 1px solid var(--line); }
-    .component-row:nth-child(odd) { background: #faf7ef; }
-    .component-name { display: flex; flex-direction: column; gap: 7px; }
-    .component-name strong { font-family: var(--mono); font-size: 18px; color: var(--green); }
-    .role { color: var(--muted); font-size: 13px; }
-    .contract { font-size: 14px; }
-    .refs { font-size: 14px; }
-    .refs a { font-weight: 650; }
-    .difference { color: #394a42; font-size: 14px; }
-    .fit { display: inline-block; margin-top: 8px; border-radius: 999px; padding: 3px 7px; font-family: var(--mono); font-size: 10px; text-transform: uppercase; }
-    .fit.native { color: #18543f; background: var(--green-soft); }
-    .fit.narrow { color: #24596a; background: var(--blue-soft); }
-    .fit.outer { color: #7a4b12; background: #f0e0c3; }
-    .readout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .readout article { min-height: 190px; padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-    .readout h3 { margin: 7px 0 10px; font-size: 21px; }
-    .readout p { margin: 0; color: var(--muted); }
-    .industry-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .industry-card { padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-    .industry-card h3 { margin: 7px 0 10px; font-size: 21px; }
-    .industry-card p { margin: 0; color: var(--muted); }
-    .industry-card .lesson { display: block; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--ink); font-size: 13px; }
-    .mcp { display: grid; grid-template-columns: 1fr 1.5fr; gap: 28px; padding: 30px; border-radius: 14px; color: white; background: var(--ink); }
-    .mcp h2 { color: white; }
-    .mcp p { margin: 0; color: #c9d6cf; }
-    .mcp a { color: #8fd4d7; }
-    .sources { columns: 3; column-gap: 40px; padding-left: 20px; }
-    .sources li { break-inside: avoid; margin: 0 0 10px; color: var(--muted); font-size: 14px; }
-    footer { display: flex; justify-content: space-between; gap: 20px; padding: 28px 0 42px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-    @media (max-width: 960px) {
-      .map { overflow-x: auto; }
-      .map-head, .component-row { min-width: 920px; }
-      .systems, .readout, .industry-grid { grid-template-columns: 1fr; }
-      .system:first-child { grid-column: auto; }
-      .sources { columns: 2; }
-    }
-    @media (max-width: 700px) {
-      .shell { width: min(100% - 24px, 1240px); }
-      .nav { align-items: flex-start; flex-direction: column; justify-content: center; gap: 8px; padding: 14px 0; }
-      .hero { padding-top: 48px; }
-      .section-head, .mcp { grid-template-columns: 1fr; }
-      .sources { columns: 1; }
-      footer { flex-direction: column; }
-    }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 9% 2%, rgba(169,239,135,.22), transparent 24rem), radial-gradient(circle at 92% 13%, rgba(169,216,244,.2), transparent 27rem), var(--paper); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-underline-offset: 4px; }
+    code, .mono { font-family: var(--mono); }
+    :focus-visible { outline: 3px solid #327a51; outline-offset: 4px; }
+    .shell { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+    .skip-link { position: fixed; top: 10px; left: 10px; z-index: 20; padding: 9px 13px; border: 1px solid var(--ink); border-radius: 9px; background: var(--green); transform: translateY(-160%); }
+    .skip-link:focus { transform: translateY(0); }
+    .nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 24px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 800; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--ink); border-radius: 10px; background: var(--green); box-shadow: 3px 3px 0 var(--ink); font-family: var(--mono); font-size: 18px; }
+    .nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; font-size: 14px; font-weight: 650; }
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover, .nav-links a[aria-current="page"] { text-decoration: underline; }
+    .nav-cta { padding: 9px 13px; border: 1px solid var(--ink); border-radius: 10px; background: var(--ink); color: var(--surface); }
+    .hero { padding: 76px 0 92px; }
+    .eyebrow, .kicker { margin: 0; font-family: var(--mono); font-size: 12px; font-weight: 780; letter-spacing: .11em; text-transform: uppercase; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; }
+    .eyebrow::before { content: ""; width: 26px; height: 8px; border: 1px solid var(--ink); border-radius: 99px; background: var(--green); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 940px; margin: 20px 0 24px; font-size: clamp(52px, 7.7vw, 96px); line-height: .94; letter-spacing: -.065em; text-wrap: balance; }
+    .lede { max-width: 850px; margin: 0; color: var(--muted); font-size: clamp(18px, 2vw, 22px); }
+    .lede strong { color: var(--ink); }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .meta span { padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; background: rgba(252,250,244,.6); font-family: var(--mono); font-size: 11px; }
+    section { padding: 90px 0; }
+    .intro-section { border-block: 1px solid var(--line); background: rgba(252,250,244,.56); }
+    .section-head { display: grid; grid-template-columns: .58fr 1.42fr; gap: 42px; margin-bottom: 42px; }
+    .kicker { margin-top: 8px; }
+    h2 { margin-bottom: 16px; font-size: clamp(38px, 5vw, 66px); line-height: 1; letter-spacing: -.05em; text-wrap: balance; }
+    .section-intro { max-width: 760px; margin: 0; color: var(--muted); font-size: 18px; }
+    .principles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .principle { min-height: 210px; padding: 22px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+    .principle:nth-child(1) { border-top: 5px solid var(--yellow); }
+    .principle:nth-child(2) { border-top: 5px solid var(--coral); }
+    .principle:nth-child(3) { border-top: 5px solid var(--blue); }
+    .principle:nth-child(4) { border-top: 5px solid var(--green); }
+    .principle code { display: block; margin-bottom: 30px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .principle h3 { margin-bottom: 8px; font-size: 20px; letter-spacing: -.025em; }
+    .principle p { margin: 0; color: var(--muted); font-size: 13px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--ink); border-radius: 22px; background: var(--surface); box-shadow: 7px 7px 0 var(--green); }
+    table { width: 100%; min-width: 1040px; border-collapse: collapse; }
+    caption { padding: 15px 18px; color: #c2d0c7; background: var(--ink); font-family: var(--mono); font-size: 11px; text-align: left; }
+    thead { color: var(--surface); background: var(--ink); }
+    th { padding: 14px 17px; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-align: left; text-transform: uppercase; }
+    th:nth-child(1) { width: 16%; } th:nth-child(2) { width: 29%; } th:nth-child(3) { width: 30%; } th:nth-child(4) { width: 25%; }
+    tbody tr { border-top: 1px solid var(--line); }
+    tbody tr:nth-child(even) { background: rgba(23,34,29,.025); }
+    tbody th, td { padding: 19px 17px; vertical-align: top; }
+    tbody th { font-family: var(--mono); font-size: 17px; text-transform: lowercase; }
+    tbody th a { color: var(--green-deep); }
+    tbody th small { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    td { color: #435149; font-size: 13px; }
+    td strong { display: block; margin-bottom: 4px; color: var(--ink); font-size: 13px; }
+    .cmd { display: inline-block; margin: 8px 4px 0 0; padding: 4px 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--paper); font-family: var(--mono); font-size: 10px; }
+    .phase { display: inline-block; margin-bottom: 7px; padding: 4px 7px; border-radius: 6px; background: rgba(169,216,244,.35); color: #27566f; font-family: var(--mono); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .composition { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .composition article { min-height: 205px; padding: 23px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+    .composition h3 { margin: 7px 0 9px; font-family: var(--mono); font-size: 18px; }
+    .composition p { margin: 0; color: var(--muted); font-size: 13px; }
+    .callout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 28px; align-items: center; margin-top: 24px; padding: 28px; border-radius: 22px; color: var(--surface); background: var(--ink); }
+    .callout strong { color: var(--green); font-size: 24px; line-height: 1.2; }
+    .callout span { color: #b8c6bd; font-size: 14px; }
+    .cta-section { padding-bottom: 118px; }
+    .cta { display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 34px; border: 1px solid var(--ink); border-radius: 26px; background: var(--yellow); box-shadow: 7px 7px 0 var(--ink); }
+    .cta h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); }
+    .button { flex: none; padding: 13px 17px; border: 1px solid var(--ink); border-radius: 11px; color: var(--surface); background: var(--ink); text-decoration: none; font-weight: 780; }
+    footer { display: flex; justify-content: space-between; gap: 20px; padding: 28px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    @media (max-width: 960px) { .principles { grid-template-columns: repeat(2, 1fr); } .composition { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 700px) { .shell { width: min(calc(100% - 26px), var(--max)); } .nav { align-items: flex-start; flex-direction: column; } .nav-links { width: 100%; gap: 12px 18px; } .hero { padding: 48px 0 72px; } section { padding: 72px 0; } .section-head, .callout { grid-template-columns: 1fr; gap: 16px; } .principles, .composition { grid-template-columns: 1fr; } .cta { align-items: flex-start; flex-direction: column; } footer { flex-direction: column; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <header class="shell nav">
-    <a class="brand" href="index.html"><span class="brand-mark">b</span><span>bench <span style="color:var(--muted)">/ component map</span></span></a>
-    <nav class="nav-links" aria-label="Site navigation"><a href="index.html">Agent overview</a><a href="#systems">Unix capabilities</a><a href="#map">16 components</a><a href="#industry">Industry stack</a><a href="compare.html">Full 2026 landscape →</a></nav>
+    <a class="brand" href="index.html"><span class="brand-mark">b</span><span>bench <span style="color:var(--muted)">/ components</span></span></a>
+    <nav class="nav-links" aria-label="Site navigation"><a href="index.html">Overview</a><a href="components.html" aria-current="page">Components</a><a href="compare.html">Compare</a><a href="https://github.com/patrickyoung/bench/releases/tag/v0.13.0">Release 0.13.0</a><a class="nav-cta" href="https://github.com/patrickyoung/agent">GitHub ↗</a></nav>
   </header>
-
-  <main>
-    <section class="hero">
-      <div class="shell">
-        <p class="eyebrow">Bench suite 0.13.0 · rescanned 30 Aug 2026</p>
-        <h1>A strong agent core, shaped like Unix.</h1>
-        <p class="lede"><strong>Bench is not a framework, SDK, or hosted platform.</strong> It is sixteen pinned components whose eighteen public commands compose through argv, streams, files, signals, processes, and exit status. This map compares the capabilities—not the packaging—with prominent 2026 systems.</p>
-        <div class="meta"><span>16 pinned components</span><span>18 public commands + 1 private adapter</span><span>primary documentation</span><span>no feature-score arithmetic</span></div>
+  <main id="main">
+    <section class="hero"><div class="shell">
+      <p class="eyebrow">Bench 0.13.0 contract reference</p>
+      <h1>Every guarantee has an owner.</h1>
+      <p class="lede"><strong>Bench is sixteen narrow components, not one agent-shaped authority blob.</strong> Model access, iteration, confinement, approval, effects, evidence, learning, and durability remain separate ordinary programs with inspectable contracts.</p>
+      <div class="meta"><span>16 pinned components</span><span>18 public commands</span><span>phase-scoped composition</span><span>versions from the release manifest</span></div>
+    </div></section>
+    <section class="intro-section" id="principles"><div class="shell">
+      <div class="section-head"><p class="kicker">How to read the map</p><div><h2>A component owns one consequential job.</h2><p class="section-intro">The system’s strength comes from the seams between programs. A run selects only the filters required by its phase; the released count is compatibility packaging, not runtime ceremony.</p></div></div>
+      <div class="principles">
+        <article class="principle"><code>ownership</code><h3>One decision, one owner</h3><p>Intelligence cannot quietly absorb authority, evidence, or acceptance.</p></article>
+        <article class="principle"><code>authority</code><h3>Granted by the caller</h3><p>Markdown and model output cannot widen the run’s permissions.</p></article>
+        <article class="principle"><code>evidence</code><h3>Written outside the worker</h3><p>The execution does not own the record later used to judge it.</p></article>
+        <article class="principle"><code>composition</code><h3>Programs all the way down</h3><p>Replace a provider, policy, loop, connector, or projection without replacing the control plane.</p></article>
       </div>
-    </section>
-
-    <section>
-      <div class="shell">
-        <div class="section-head"><p class="kicker">How to read it</p><div><h2>Do not grade a Unix system by SDK-shaped boxes.</h2><p class="section-intro">A framework imports a graph, a hosted platform owns a control plane, and Bench composes processes. The right comparison asks whether the system can express, persist, replay, inspect, constrain, and verify the work—and then names the exact unit and boundary of that guarantee.</p></div></div>
-        <div class="method"><strong>Adoption note.</strong> There is no credible apples-to-apples usage census across model APIs, coding workbenches, RAG libraries, sandboxes, observability platforms, and durable workflow engines. “2026 reference points” below means prominent, widely deployed or ecosystem-visible systems with current primary documentation—not a fabricated rank order.</div>
+    </div></section>
+    <section id="map"><div class="shell">
+      <div class="section-head"><p class="kicker">The released manifest</p><div><h2>Sixteen contracts, including both protocol edges.</h2><p class="section-intro">“Owns” names the narrow capability. “Boundary” names the guarantee it deliberately refuses to fake. “Durable output” shows what another program can inspect.</p></div></div>
+      <div class="table-wrap" tabindex="0" aria-label="Scrollable Bench component contract table"><table>
+        <caption>Bench suite 0.13.0 · fourteen core components + MCP and OAuth · eighteen public commands</caption>
+        <thead><tr><th scope="col">Component</th><th scope="col">Phase and exact job</th><th scope="col">Authority boundary / refusal</th><th scope="col">Commands and durable output</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/bench">bench</a><small>v0.7.0</small></th><td><span class="phase">admit + promote</span><strong>Operator workbench</strong>Turns open intent into an editable, content-addressed outcome contract, admits exact bytes, invokes the selected path, and promotes a result.</td><td>Does not become a provider, tool loop, approval engine, or second evidence store.</td><td><span class="cmd">bench</span><strong>Contract + result records</strong>Outcome contract identity and sealed result records share Ask’s event history.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/ask">ask</a><small>v0.2.0</small></th><td><span class="phase">reason + record</span><strong>Model boundary and event spine</strong>Makes a selected model request and folds append-only events into exact normalized request history.</td><td>Has no tools, agent loop, approval authority, or claim about external truth.</td><td><span class="cmd">ask</span><strong>Append-only JSONL events</strong>Messages, evidence, reasoning blocks, retries, usage, outcomes, digests, and sealed program records.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/brief">brief</a><small>v0.1.1</small></th><td><span class="phase">prepare</span><strong>Procedure catalogue</strong>Finds, validates, selects, and prints relevant Agent Skills; deterministic selection comes first.</td><td>Does not install, execute, approve, or own a model provider. Its explicit fallback borrows Ask.</td><td><span class="cmd">brief</span><strong>Selected procedure bytes</strong>Ordinary stdout plus a caller-recorded selection path.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/ply">ply</a><small>v0.1.2</small></th><td><span class="phase">iterate</span><strong>Checked process loop</strong>Frames one-action attempts, observes results, runs an external evaluator, returns rejection evidence, and resumes Ask checkpoints.</td><td>Owns neither provider nor history. A toolbox is capability, not authority; completion belongs to the check.</td><td><span class="cmd">ply</span><strong>Sealed verdicts</strong>Accepted, rejected, and broken check records are appended through Ask.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/context">context</a><small>v0.1.0</small></th><td><span class="phase">retrieve</span><strong>External evidence seam</strong>Runs one caller-selected connector, validates JSONL, normalizes records, and stamps query and connector digest.</td><td>Does not choose a source, index, route, rerank, cache, or synthesize an answer.</td><td><span class="cmd">context</span><strong>Self-contained evidence records</strong>Stable refs, structured content, source identity, query, and connector provenance.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/action">action</a><small>v0.1.0</small></th><td><span class="phase">affect</span><strong>Controlled external-effect seam</strong>Runs a strict proposal through caller policy, exact May authorization, and an operator-owned connector.</td><td>Cannot grant itself authority. An uncertain post-send result is status 125 and must not be retried automatically.</td><td><span class="cmd">action</span><strong>Typed effect receipt</strong>Proposal, policy, authorization, connector result, or explicit uncertainty.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/cite">cite</a><small>v0.1.0</small></th><td><span class="phase">validate output</span><strong>Citation identity gate</strong>Prints candidate bytes unchanged only when every <code>ctx:</code> citation is an exact evidence ref-to-URL pair.</td><td>Does not retrieve, create citations, judge semantic support, measure coverage, or establish source authority.</td><td><span class="cmd">cite</span><strong>Byte-preserving verdict</strong>Accepted candidate on stdout or a fail-closed nonzero exit.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/cage">cage</a><small>v0.1.0</small></th><td><span class="phase">execute command</span><strong>Host write/network confinement</strong>Runs a model-authored command with caller-selected persistent-write roots and network policy.</td><td>Not a VM: no complete read, secret, identity, syscall, CPU, memory, or PID isolation.</td><td><span class="cmd">cage</span><strong>Command result</strong>Exit status and streams from a fail-closed supported host backend.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/may">may</a><small>v0.1.0</small></th><td><span class="phase">authorize</span><strong>Exact human decision</strong>Binds one allow or deny decision to exact proposed bytes and current state; a matching grant is spent once.</td><td>Does not decide policy, edit the proposal, execute the effect, or become a general workflow engine.</td><td><span class="cmd">may</span><strong>Decision receipt</strong>Digest-bound review identity and one-shot grant state.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/hone">hone</a><small>v0.2.0</small></th><td><span class="phase">learn + admit</span><strong>Verified procedural memory</strong>Turns replay-verified fail→pass recovery into exact proposed procedure bytes with retained provenance.</td><td>No automatic memory rewrite, similarity guess, or self-admission. Review remains separate.</td><td><span class="cmd">hone</span><strong>Learning proposal + receipt</strong>Source sessions, wording session, exact destination bytes, and admission evidence.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/trail">trail</a><small>v0.1.0</small></th><td><span class="phase">inspect</span><strong>Authoritative archive query</strong>Lists, searches, windows, and follows recorded lineage over Ask events; delegates replay checking to Ask.</td><td>Creates no shadow trace format and makes no claim that a recorded producer told the truth.</td><td><span class="cmd">trail</span><strong>Read-only JSONL projections</strong>Exact events, windows, lineage, search results, and integrity status.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/agent">agent</a><small>v0.2.1</small></th><td><span class="phase">assemble + run</span><strong>Folder-shaped worker</strong>Validates definition, mutable roots, evidence paths, tools, checks, checkpoints, and separate specialist homes.</td><td>Glue, not a duplicate model loop, event store, approval engine, or daemon. Specialists are separate homes and foreground executions, not distributed workers.</td><td><span class="cmd">agent</span><strong>Home-scoped artifacts</strong>Work, state, runs, checkpoints, learning proposals, amendments, and action proposals.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/tend">tend</a><small>v0.1.2</small></th><td><span class="phase">supervise</span><strong>Local process durability</strong>Persists exact argv and stdin, claims work transactionally, handles signals and timers, and replays lifecycle projections.</td><td>Not a daemon requirement, distributed scheduler, arbitrary memory checkpoint, or exactly-once effect claim. Uncertainty remains explicit.</td><td><span class="cmd">tend</span><strong>SQLite state + immutable events</strong>Leases, attempts, timers, signals, digest-bound artifacts, projections, and resolutions.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/draft">draft</a><small>v1.0.0</small></th><td><span class="phase">design + prove</span><strong>Design-to-build path</strong>Turns an argued <code>DESIGN.md</code> into explicit build and check commands, then mutation-tests the verifier.</td><td>Does not hide another framework or declare an unfalsifiable prose design complete.</td><td><span class="cmd">draft</span><strong>Design, build, and proof artifacts</strong>Admitted verifier bytes, mutation evidence, and replay-linked learning inputs.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/mcp">mcp</a><small>v0.3.0</small></th><td><span class="phase">protocol edge</span><strong>MCP-to-Unix projection</strong>Discovers, calls, compiles, and serves reviewed Tools, Resources, Prompts, Tasks, continuations, and streams as programs and files.</td><td>Not a hidden session inside Ply. Capability folders are operator-provisioned allowlists; effect uncertainty remains visible.</td><td><span class="cmd">mcp</span><span class="cmd">mcpbox</span><span class="cmd">mcpserve</span><strong>Descriptors + exact results</strong>Digest-admitted capability folders, request results, handles, and JSONL streams.</td></tr>
+          <tr><th scope="row"><a href="https://github.com/patrickyoung/oauth">oauth</a><small>v0.1.1</small></th><td><span class="phase">authorization edge</span><strong>OAuth at the process boundary</strong>Logs a person or machine into one resource, refreshes safely, and gives one exact child an Authorization header on descriptor 3.</td><td>Not an HTTP proxy, SDK, daemon, identity provider, browser host, or secret service; it never retries the child.</td><td><span class="cmd">oauth</span><strong>Protected profile state</strong>Separate definition and credential records plus locks; ordinary status never prints credentials.</td></tr>
+        </tbody>
+      </table></div>
+    </div></section>
+    <section class="intro-section" id="composition"><div class="shell">
+      <div class="section-head"><p class="kicker">How the system composes</p><div><h2>The operating system supplies the universal joints.</h2><p class="section-intro">Programs are capabilities; <code>PATH</code> is discovery; streams carry records; files preserve state; exit status is control flow; signals and process groups coordinate execution.</p></div></div>
+      <div class="composition">
+        <article><span class="kicker">definition</span><h3>bench · agent · brief</h3><p>Admit the promise, assemble the home, disclose the relevant procedure.</p></article>
+        <article><span class="kicker">intelligence</span><h3>ask · ply</h3><p>Reason inside an external checked loop and keep the normalized request history.</p></article>
+        <article><span class="kicker">evidence</span><h3>context · cite · trail</h3><p>Retrieve attributed inputs, gate literal citations, query the authoritative archive.</p></article>
+        <article><span class="kicker">authority</span><h3>cage · may · action</h3><p>Confine commands, authorize exact bytes, execute effects outside worker scope.</p></article>
+        <article><span class="kicker">promotion</span><h3>hone · draft</h3><p>Promote only reviewed recovery and falsifiable design into durable procedure.</p></article>
+        <article><span class="kicker">durability + edges</span><h3>tend · mcp · oauth</h3><p>Persist local execution and translate network capabilities into narrow process seams.</p></article>
       </div>
-    </section>
-
-    <section id="systems">
-      <div class="shell">
-        <div class="section-head"><p class="kicker">The composed system</p><div><h2>The important capabilities live between programs.</h2><p class="section-intro">Looking at one executable at a time misses the system Bench forms. These are native Unix compositions present in 0.13.0; they are selected by phase, not all loaded into every run.</p></div></div>
-        <div class="systems">
-          <article class="system"><span class="kicker" style="color:#8fd4d7">Event spine + full replay</span><h3>Two event-sourced replay domains, one evidence path</h3><p>Ask folds append-only JSONL events back into the exact normalized request at any request sequence. It verifies contiguous events, request digests, inline Context snapshots, provider-replayable reasoning blocks, and sealed program records for checks, approvals, confinement, contracts, and results. Tend independently replays its immutable lifecycle events into the current job projection and verifies that projection plus every digest-bound attempt and check artifact. Trail reads the same Ask events; there is no shadow trace format.</p><span class="boundary">Precise boundary: replay reconstructs and verifies recorded conversation/request state and Tend controller state. It does not re-perform an external effect or prove that a recorded producer told the truth.</span></article>
-          <article class="system"><span class="kicker">Evaluation</span><h3>A check is an evaluator, and its verdict is evidence</h3><p>Ply runs an operator-owned check before work and after every candidate, returns rejection evidence to the model, and seals every accepted, rejected, or broken verdict into the replayable session. Draft mutation-tests checks. Bench ships a frozen 60-case routing conformance corpus; Agent ships a lifecycle corpus. Exact replay makes any archived run stable input to later code, model, safety, cost, or regression evaluators.</p><span class="boundary">Not bundled: a hosted experiment catalogue, aggregate statistics, annotation queues, or comparison dashboard.</span></article>
-          <article class="system"><span class="kicker">Memory</span><h3>Four memories, each with a different authority</h3><p>Ask provides exact thread memory and attributed compaction lineage. Agent provides curated <code>MEMORY.md</code> and durable file-shaped state. Hone turns only replay-verified fail→pass recoveries into reviewed procedural memory consumed through Brief. Context supplies self-contained retrieved evidence snapshots that replay without refetching, while Trail provides archive recall and lineage.</p><span class="boundary">Not bundled: automatic embedding search, background consolidation, self-editing memory, or an opinionated forgetting policy.</span></article>
-          <article class="system"><span class="kicker">Multi-agent</span><h3>Agents are processes, specialists are isolated homes</h3><p>Agent validates nested specialist homes with separate goals, instructions, tools, checks, checkpoints, and evidence. Ply can invoke another Ply as an ordinary tool, propagates model policy, records independent sessions, bounds nesting, and teaches root-controlled fan-out and synthesis. The shell supplies background jobs, <code>wait</code>, <code>xargs -P</code>, pipes, and per-child status artifacts.</p><span class="boundary">Not bundled: a provider-specific handoff object, shared in-memory graph state, or a distributed team scheduler.</span></article>
-          <article class="system"><span class="kicker">Workflow + durability</span><h3>POSIX is the workflow language; Tend is the durable process boundary</h3><p>Shell, Make, pipes, conditionals, loops, background jobs, <code>wait</code>, cron, launchd, systemd, and CI already express sequences, branches, fan-out/join, schedules, and retries. Tend adds SQLite transactions, exact argv, serialization keys, immutable events, leases, timers, durable signals, indefinite human waits, cancellation, attempt artifacts, and explicit resolution of uncertain effects—without requiring workflow callbacks.</p><span class="boundary">Not bundled: multi-host queues or automatic checkpointing of arbitrary in-process function calls. Split durable steps into programs/jobs, or add a distributed substrate when that deployment boundary is required.</span></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="map">
-      <div class="shell">
-        <div class="section-head"><p class="kicker">The released manifest</p><div><h2>Fourteen core components plus two protocol edges.</h2><p class="section-intro">The rows follow Bench 0.13.0. “Bench position” names both its native guarantee and the different boundary supplied by a framework or hosted system. MCP contributes three public commands and OAuth one, producing eighteen commands from sixteen components.</p></div></div>
-        <div class="map" role="table" aria-label="Bench components and common 2026 reference solutions">
-          <div class="map-head" role="row"><div>Bench component</div><div>Exact job</div><div>Common 2026 reference points</div><div>Bench position and difference</div></div>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>bench</strong><span class="role">operator workbench</span></div><div class="contract">Compiles open intent into a schema-bound, editable, content-addressed outcome contract; admits exact reviewed bytes; runs the selected process path; and seals the final result into the same Ask event history.</div><div class="refs"><a href="https://openai.com/index/introducing-the-codex-app/">OpenAI Codex</a> and <a href="https://code.claude.com/docs/en/overview">Claude Code</a> are prominent integrated workbenches for delegation, tools, review, parallel work, and long-running sessions.</div><div class="difference">Bench has the complete intent → contract → authority → work → proof journey and a replayable evidence chain. Its difference is Unix composition: the model, loop, approval, confinement, and history remain replaceable programs. Hosted workbenches add fleets, remote collaboration, and IDE/application surfaces.<br><span class="fit native">native Unix workbench</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>ask</strong><span class="role">model + event boundary</span></div><div class="contract">Puts one question through a selected model and writes an append-only event stream containing exact messages, attachments, evidence, normalized request metadata, streamed reasoning/text, retries, usage, outcomes, and sealed program records.</div><div class="refs">The <a href="https://developers.openai.com/api/reference/cli/resources/responses/methods/create">OpenAI Responses API</a> and <a href="https://docs.anthropic.com/en/api/messages">Anthropic Messages API</a> provide model calls and hosted continuation; the <a href="https://openai.github.io/openai-agents-python/tracing/">OpenAI Agents SDK trace system</a> records agent spans.</div><div class="difference">Ask goes beyond “session storage”: <code>replay -step</code> reconstructs the exact request from the fold, and <code>replay -check</code> verifies every request digest, sequence, evidence manifest, and sealed record. It is local and provider-neutral; it deliberately has no tools or loop.<br><span class="fit native">native verified event replay</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>brief</strong><span class="role">procedure catalogue</span></div><div class="contract">Finds, validates, selects, and prints Agent Skills. It does not run or install a skill; deterministic selection is local, while explicit <code>-ask</code> borrows the separate Ask process.</div><div class="refs">The open <a href="https://agentskills.io/specification">Agent Skills specification</a>, plus skills in <a href="https://code.claude.com/docs/en/features-overview">Claude Code</a> and Codex, are the 2026 convention for reusable on-demand procedures.</div><div class="difference">Brief implements progressive disclosure as <code>ls</code>, selection, and <code>cat</code>. Modern harnesses usually load and execute skills inside the agent runtime; Brief keeps the catalogue and optional selector evidence independently inspectable.<br><span class="fit native">native standard</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>ply</strong><span class="role">process agent loop</span></div><div class="contract">Lets a model run one complete shell action per turn, returns the observed result, checks the candidate with an external program, seals the verdict, resumes named Ask checkpoints, and can invoke nested Ply workers as ordinary tools.</div><div class="refs"><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph</a> and the <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a> package loops, tools, handoffs, guardrails, sessions, and orchestration as libraries.</div><div class="difference">Ply supplies the same core agent loop through POSIX processes. The toolbox is <code>PATH</code>, completion is exit status, workflows are shell, subagents are processes, and the entire run shares Ask’s verified event history. What it does not supply is an in-process graph object, realtime application API, or hosted trace viewer.<br><span class="fit native">native Unix agent loop</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>context</strong><span class="role">external evidence seam</span></div><div class="contract">Runs one caller-selected executable connector, validates and normalizes its JSONL records, preserves structured content, and stamps the exact query and connector digest.</div><div class="refs"><a href="https://developers.llamaindex.ai/python/framework/module_guides/loading/connector/">LlamaIndex data connectors</a> are a major reference for loading many source types into retrieval and indexing pipelines.</div><div class="difference">Context already provides connector discovery, normalized evidence, stable refs, and retrieval provenance. Unlike LlamaIndex, it has no index, embeddings, router, cache, reranker, or synthesis layer; those can sit behind a connector.<br><span class="fit native">native retrieval seam</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>cite</strong><span class="role">citation identity gate</span></div><div class="contract">Prints a candidate byte-for-byte only when it contains at least one citation and every <code>ctx:</code> occurrence is the exact ref-to-URL Markdown pair present in supplied Context evidence.</div><div class="refs"><a href="https://developers.llamaindex.ai/python/examples/query_engine/citation_query_engine/">LlamaIndex CitationQueryEngine</a> is a common end-to-end cited-RAG pattern: retrieve indexed nodes and have the model generate numbered citations.</div><div class="difference">Cite is narrower and more deterministic: it verifies literal identity after generation. It does not retrieve, create citations, judge claim support, measure coverage, or establish source authority.<br><span class="fit narrow">strong narrow guarantee</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>cage</strong><span class="role">OS action boundary</span></div><div class="contract">Runs one command with caller-selected writable roots and network policy using the host operating system. It has no daemon, image, or policy language.</div><div class="refs"><a href="https://docs.docker.com/ai/sandboxes/">Docker Sandboxes</a> and <a href="https://e2b.dev/">E2B</a> are prominent agent sandboxes using isolated microVM environments, managed templates, credentials, and longer-lived sessions.</div><div class="difference">Cage provides a cheap fail-closed boundary for ordinary local programs. It is not a container or microVM: the child may still read the host filesystem and inherited environment unless an outer deployment hides them.<br><span class="fit narrow">native, lighter boundary</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>may</strong><span class="role">exact human authorization</span></div><div class="contract">Binds a human decision to the exact bytes of one action. Decisions can park durably, and one matching grant is atomically spent once.</div><div class="refs"><a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop">LangChain HITL</a> and <a href="https://openai.github.io/openai-agents-python/human_in_the_loop/">OpenAI Agents SDK approvals</a> pause tool execution so a person can approve, edit, or reject it.</div><div class="difference">May has no graph or agent state; its stronger local property is the public digest over exact job/action bytes and a single-use grant. Rich frameworks offer editable decisions and in-context continuation.<br><span class="fit narrow">native exact-byte gate</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>action</strong><span class="role">controlled effect boundary</span></div><div class="contract">Inspects and executes strict connector proposals through caller-selected policy and exact May authorization, then emits effect receipts without granting itself authority.</div><div class="refs">Tool runtimes in the <a href="https://openai.github.io/openai-agents-python/tools/">OpenAI Agents SDK</a> and <a href="https://modelcontextprotocol.io/docs/learn/server-concepts">MCP</a> expose external operations behind structured calls.</div><div class="difference">Action keeps proposal, policy, approval, connector execution, and receipt as ordinary controller processes. Its conservative uncertain-effect exit remains distinct from success; a future VM credential proxy must preserve this boundary rather than placing long-lived secrets in the worker.<br><span class="fit native">native controlled-effect seam</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>hone</strong><span class="role">procedural memory</span></div><div class="contract">Finds replay-verified fail→pass recoveries, derives a narrow lesson, records the wording session, prepares exact proposed skill bytes, and admits them only after replay and separate review.</div><div class="refs"><a href="https://docs.letta.com/tutorials/attaching-detaching-blocks/">Letta memory blocks</a> and <a href="https://docs.langchain.com/oss/python/concepts/memory">LangGraph memory</a> represent automated semantic, episodic, and procedural memory stores.</div><div class="difference">Hone is not a lesser memory system; it is a stricter procedural one. It requires evidence that the old behavior failed and the new behavior passed, retains provenance, and separates proposal from admission. It omits automatic extraction/retrieval and similarity search by policy, not because Bench lacks durable memory.<br><span class="fit native">native verified procedural memory</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>trail</strong><span class="role">event archive query</span></div><div class="contract">Lists sessions, searches semantic event text, prints exact events and windows, follows only recorded compaction lineage, and delegates archive-wide replay verification to Ask without creating another log.</div><div class="refs"><a href="https://docs.langchain.com/langsmith/observability">LangSmith</a> combines hosted tracing and evaluation; <a href="https://opentelemetry.io/docs/specs/semconv/">OpenTelemetry</a> standardizes exported telemetry.</div><div class="difference">Trail plus ordinary <code>jq</code>, <code>rg</code>, <code>sort</code>, and <code>join</code> is a local event query and evaluation substrate over the authoritative record. Ask already records model, usage, latency, retries, reasoning, actions, observations, and verdicts. Missing are a unified span topology, metrics aggregation, alerts, retention service, and dashboard—not the underlying evidence.<br><span class="fit native">native replayable evidence plane</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>agent</strong><span class="role">folder-shaped worker</span></div><div class="contract">Compiles a home of goal, instructions, curated memory, skills, tools, state, executable checks, nested specialist homes, checkpoints, and replay evidence into existing process boundaries.</div><div class="refs">The <a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a>, <a href="https://adk.dev/workflows/">Google ADK</a>, and <a href="https://docs.langchain.com/oss/python/langgraph/use-subgraphs">LangGraph subgraphs</a> provide SDK-shaped single- and multi-agent runtimes.</div><div class="difference">Agent already has first-class multi-agent structure: recursively validated specialist homes have isolated context, authority, checks, checkpoints, and evidence; the shell supplies parallelism and aggregation. It lacks a hosted/distributed scheduler and shared in-memory handoff graph, not multi-agent capability.<br><span class="fit native">native process multi-agent</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>tend</strong><span class="role">event-sourced process durability</span></div><div class="contract">Persists exact argv and stdin; atomically claims serialized work; records immutable lifecycle events, leases, signals, timers, and digest-bound artifacts; supports indefinite waits and explicit retry/cancel/unknown resolution; and replays events against its live projection.</div><div class="refs"><a href="https://docs.temporal.io/workflow-execution">Temporal</a>, <a href="https://docs.dbos.dev/why-dbos">DBOS</a>, and <a href="https://docs.restate.dev/ai/patterns/durable-agents">Restate</a> journal SDK workflow calls and recover them across distributed workers.</div><div class="difference">Tend is a real durable workflow substrate whose atomic unit is an ordinary process. Temporal/DBOS/Restate automatically journal calls inside application code and operate multi-host services; Tend instead lets POSIX define topology and makes uncertain effects explicit rather than claiming transparent exactly-once behavior.<br><span class="fit native">native local event-sourced workflows</span></div></article>
-
-          <article class="component-row" role="row"><div class="component-name"><strong>draft</strong><span class="role">design → build → evaluate</span></div><div class="contract">Creates an argued <code>DESIGN.md</code> with an executable check, admits the verifier when stronger authority is required, drives the build, mutation-tests the check, and feeds replay-verified recoveries into Hone.</div><div class="refs"><a href="https://github.github.com/spec-kit/">GitHub Spec Kit</a> is a prominent 2026 spec-driven harness: Spec → Plan → Tasks → Implement across coding agents.</div><div class="difference">Draft covers design, implementation, executable acceptance, verifier admission, mutation evaluation, and learning as Unix commands. Spec Kit has richer templates and agent integrations; Draft has a stronger built-in falsifiability test for the check and a smaller, inspectable state model.<br><span class="fit native">native design + evaluation lifecycle</span></div></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="industry">
-      <div class="shell">
-        <div class="section-head"><p class="kicker">The conventional build</p><div><h2>The rest of the industry assembles a stack.</h2><p class="section-intro">There is no single mainstream product that matches Bench’s whole boundary. A conventional 2026 implementation usually combines several of the systems below. Each card also names an idea Bench can productively borrow while keeping programs and POSIX at the center.</p></div></div>
-        <div class="industry-grid">
-          <article class="industry-card"><span class="kicker">Agent loop + tool protocol</span><h3>OpenAI Agents SDK, Google ADK, LangGraph, MCP</h3><p>Libraries own the loop, tool schemas, handoffs, guardrails, sessions, and callbacks. MCP standardizes the network-facing capability catalogue. Bench distributes those jobs across Ask, Ply, Agent, Brief, ordinary executables, and the standalone <a href="https://github.com/patrickyoung/mcp"><code>mcp</code> edge</a>.</p><span class="lesson"><strong>Bench has borrowed:</strong> a lossless request filter plus reviewed capability directories for Tools, Resources, Prompts, Tasks, continuations, and subscriptions—without introducing a second internal tool model. Streamable HTTP, safe template expansion, binary unpacking, Registry proposals, and reverse serving remain later slices.</span></article>
-          <article class="industry-card"><span class="kicker">Workflow + durability</span><h3>LangGraph, Temporal, DBOS, Restate</h3><p>Graph SDKs persist node state; durable-execution platforms journal calls and distribute work across managed workers. Bench uses shell and Make for topology, Ask for exact request replay, and Tend for transactional, event-sourced process durability.</p><span class="lesson"><strong>Bench should borrow:</strong> define an optional remote-runner protocol and adapters for multi-host placement; retain exact argv and explicit <code>unknown</code> effects rather than imitating transparent exactly-once claims.</span></article>
-          <article class="industry-card"><span class="kicker">Tracing + evaluation</span><h3>LangSmith, OpenAI tracing, OpenTelemetry</h3><p>Hosted systems collect spans, datasets, evaluators, experiment comparisons, metrics, feedback, and alerts. Bench already owns richer authoritative local inputs: full Ask events, sealed Ply receipts, Tend events, checks, mutation tests, and frozen corpora.</p><span class="lesson"><strong>Bench should borrow:</strong> ship read-only OpenTelemetry and experiment-report projections over existing events—aggregate scores, cost, latency, and regressions without creating a shadow log.</span></article>
-          <article class="industry-card"><span class="kicker">Memory + knowledge</span><h3>Letta, LangGraph memory, LlamaIndex</h3><p>Memory runtimes automatically update agent state; RAG systems ingest, index, embed, retrieve, rerank, and synthesize. Bench separates exact thread history, curated memory, verified procedural memory, archive recall, and self-contained Context evidence.</p><span class="lesson"><strong>Bench should borrow:</strong> publish first-party Context connectors for indexes and rerankers plus optional recall policies; keep automatic consolidation and self-editing behind explicit, reviewable programs.</span></article>
-          <article class="industry-card"><span class="kicker">Multi-agent</span><h3>CrewAI, Google ADK, LangGraph subgraphs</h3><p>Frameworks represent collaborators as objects, handoffs, shared graph state, or role declarations. Bench represents them as isolated worker homes and nested processes, using shell fan-out/join and replayable per-child artifacts.</p><span class="lesson"><strong>Bench should borrow:</strong> improve reusable fan-out, budget, cancellation, and synthesis commands; add a remote scheduler only as a process-placement service, never as hidden shared agent state.</span></article>
-          <article class="industry-card"><span class="kicker">Sandbox + serving</span><h3>Docker, E2B, Cloudflare, n8n, Dify</h3><p>Sandboxes provide stronger machine isolation; platforms provide APIs, channels, connectors, autoscaling, dashboards, and visual operations. Cage currently controls writes and network on the host, while external Unix services trigger and supervise Bench.</p><span class="lesson"><strong>Bench should borrow:</strong> add disposable-machine and secret-broker adapters, plus a thin service wrapper when needed. Do not move goals, checks, event truth, or authority into that wrapper.</span></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="readout">
-      <div class="shell">
-        <div class="section-head"><p class="kicker">What the map says</p><div><h2>Bench has a strong Unix semantic core, not a complete worker boundary.</h2><p class="section-intro">Replay, evaluation, memory, multi-agent work, workflows, retrieval, authority, and durable execution are present as phase-scoped compositions. A sealed VM execution plane, credentialless workload identity, external capability lock, and unified operator surface remain real product work.</p></div></div>
-        <div class="readout">
-          <article><span class="kicker">Native today</span><h3>Replay, evals, memory, teams, workflows</h3><p>Ask and Tend provide two verified replay domains. Checks, sealed verdicts, mutation testing, and frozen corpora provide evaluation. Agent, Ask, Hone, Context, and Trail provide distinct kinds of memory. Nested homes and processes provide teams. POSIX plus Tend provides workflows.</p></article>
-          <article><span class="kicker">Different by design</span><h3>The operating system is the framework</h3><p>Programs are capabilities; <code>PATH</code> is the tool registry; byte streams are the protocol; files are durable objects; exit status is control flow; shell, Make, schedulers, signals, and process groups are orchestration. SQLite is used narrowly where Tend needs transactional coordination.</p></article>
-          <article><span class="kicker">Precisely outside</span><h3>The sealed machine and services above one host</h3><p>No shipped Linux microVM broker, workload-identity/credential proxy, signed effective-capability lock, multi-host worker fabric, managed vector index, semantic citation judge, or unified span dashboard. Those are genuine outer boundaries—not evidence that Bench lacks agents, memory, evaluation, replay, or workflows.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="shell mcp">
-        <div><p class="kicker" style="color:#8fd4d7">Protocol edge</p><h2>Use all of MCP by translating it into Unix.</h2></div>
-        <p><code>tools/list</code> is a directory of programs waiting to happen. The maintained <a href="https://github.com/patrickyoung/mcp"><code>mcp</code> edge</a> implements that projection while keeping Ply unaware of MCP: one self-contained request reports an honest terminal, unfinished, or effect-unknown result; staged capability folders project reviewed Tools, Resources, Prompts, Tasks, continuations, and subscriptions into programs, readers, prompt filters, explicit handles, and JSONL streams. Context normalizes selected resources, Tend supervises waits, May remains exact authorization, and Ask remains the event writer. The 2026 protocol’s stateless core and explicit handles fit this architecture unusually well. Read the concrete <a href="../MCP.md">Unix-native MCP design</a> and the current <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28/">MCP 2026-07-28 release</a>.</p>
-      </div>
-    </section>
-
-    <section id="sources">
-      <div class="shell">
-        <div class="section-head"><p class="kicker">Primary sources</p><div><h2>Current documentation, not category folklore.</h2><p class="section-intro">Bench claims come from the pinned 0.13.0 manifest and the component contracts. Reference-system claims come from the linked maintainers’ documentation.</p></div></div>
-        <ol class="sources">
-          <li><a href="https://openai.com/index/introducing-the-codex-app/">OpenAI — Codex app</a></li>
-          <li><a href="https://code.claude.com/docs/en/overview">Anthropic — Claude Code</a></li>
-          <li><a href="https://developers.openai.com/api/reference/cli/resources/responses/methods/create">OpenAI — Responses API</a></li>
-          <li><a href="https://agentskills.io/specification">Agent Skills specification</a></li>
-          <li><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph — persistence</a></li>
-          <li><a href="https://openai.github.io/openai-agents-python/">OpenAI Agents SDK</a></li>
-          <li><a href="https://openai.github.io/openai-agents-python/tracing/">OpenAI Agents SDK — tracing</a></li>
-          <li><a href="https://openai.github.io/openai-agents-python/testing/">OpenAI Agents SDK — testing</a></li>
-          <li><a href="https://docs.langchain.com/oss/python/langgraph/use-time-travel">LangGraph — time travel</a></li>
-          <li><a href="https://docs.langchain.com/langsmith/evaluation-concepts">LangSmith — evaluation concepts</a></li>
-          <li><a href="https://developers.llamaindex.ai/python/framework/module_guides/loading/connector/">LlamaIndex — connectors</a></li>
-          <li><a href="https://developers.llamaindex.ai/python/examples/query_engine/citation_query_engine/">LlamaIndex — citation query engine</a></li>
-          <li><a href="https://docs.docker.com/ai/sandboxes/">Docker Sandboxes</a></li>
-          <li><a href="https://e2b.dev/">E2B</a></li>
-          <li><a href="https://docs.langchain.com/oss/python/langchain/human-in-the-loop">LangChain — human in the loop</a></li>
-          <li><a href="https://docs.letta.com/tutorials/attaching-detaching-blocks/">Letta — memory blocks</a></li>
-          <li><a href="https://docs.langchain.com/langsmith/observability">LangSmith — observability</a></li>
-          <li><a href="https://opentelemetry.io/docs/specs/semconv/">OpenTelemetry semantic conventions</a></li>
-          <li><a href="https://adk.dev/workflows/">Google ADK — workflows</a></li>
-          <li><a href="https://adk.dev/runtime/resume/">Google ADK — resume</a></li>
-          <li><a href="https://docs.temporal.io/workflow-execution">Temporal — workflow execution</a></li>
-          <li><a href="https://docs.dbos.dev/why-dbos">DBOS — durable execution</a></li>
-          <li><a href="https://docs.restate.dev/ai/patterns/durable-agents">Restate — durable agents</a></li>
-          <li><a href="https://github.github.com/spec-kit/">GitHub Spec Kit</a></li>
-          <li><a href="https://modelcontextprotocol.io/docs/learn/server-concepts">MCP server concepts</a></li>
-        </ol>
-      </div>
-    </section>
+      <div class="callout"><strong>No runtime should maximize filter count.</strong><span>A retrieval task may need Context and Cite; a local edit may not. An external effect introduces Action and May; ordinary file work does not. Phase-scoped composition keeps both the authority set and the evidence story small.</span></div>
+    </div></section>
+    <section class="cta-section"><div class="shell cta"><h2>See the contracts become one obligation.</h2><a class="button" href="index.html#loop">Walk through a run →</a></div></section>
   </main>
-
-  <footer class="shell"><span>Bench 0.13.0 component map · 30 Aug 2026</span><span style="font-family:var(--mono)">intent → evidence → authority → proof → durability</span></footer>
+  <footer class="shell"><span>Bench 0.13.0 · component contract map</span><span class="mono">one job → one owner → one inspectable seam</span></footer>
 </body>
 </html>
