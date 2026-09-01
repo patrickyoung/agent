@@ -65,13 +65,17 @@ Checksums are published in [`docs/downloads/SHA256SUMS`](docs/downloads/SHA256SU
 The skills carry the Bench method and versioned public-command contracts; they
 do not embed the Bench runtime or silently grant execution authority.
 
+After the tutorial records **SUITE-READY** and the selected non-secret
+`provider/model` records **MODEL-READY**, the same shipped Agent can be reached
+through Bench's transparent home boundary:
+
 ```sh
-agent new support-chief
+bench home new support-chief
 $EDITOR support-chief/AGENTS.md support-chief/GOAL.md support-chief/bin/check
-agent check support-chief
-agent show support-chief
-agent run support-chief
-agent tick support-chief
+bench home check support-chief
+bench home show support-chief
+bench home run -m provider/model support-chief
+bench home tick -m provider/model support-chief
 ```
 
 An agent home separates authored definition, mutable data, and evidence:
@@ -174,8 +178,8 @@ the checkpoint is not a filesystem snapshot, and a process killed during an
 external effect still requires inspection before retry.
 
 ```sh
-agent run -checkpoint release support-chief
-agent run -checkpoint release support-chief   # continue after interruption
+agent run -m provider/model -checkpoint release support-chief
+agent run -m provider/model -checkpoint release support-chief   # continue after interruption
 ```
 
 `agent specialist` runs one direct child beneath `PARENT/agents/` in the
@@ -299,7 +303,7 @@ beside the other standalone Bench filters.
 
 The Bench suite also ships Tend as an independent local process
 supervisor. It is not an Agent dependency: compose it outside an exact
-`agent run -checkpoint NAME HOME` invocation when the whole process needs
+`agent run -m provider/model -checkpoint NAME HOME` invocation when the whole process needs
 durable submission, waits, output evidence, and conservative crash recovery.
 The standalone `mcp` distribution provides the MCP edge in the same style:
 exact protocol requests plus reviewed Unix programs, prompt filters, resource

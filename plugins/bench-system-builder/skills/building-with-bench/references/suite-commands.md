@@ -19,27 +19,48 @@ Read `compatibility.md` first. Prefer the runtime's own `help`, `version`,
 ## 1. Runtime doctor
 
 Inspect `scripts/doctor.sh`, then run it from the skill directory when shell
-execution is available. It is offline and read-only: command lookup, public
-version calls, `uname`, and `cage status`. It never reads the environment,
+execution is available. It is offline and read-only: physical suite-root
+resolution, internal checksum verification, public version calls from that one
+root, `uname`, and `cage status`. Select `--prefix ABS`, `--suite-dir ABS`,
+`--bench ABS`, or no option for PATH. It never reads the environment,
 credentials, workspace contents, or network.
 
-The doctor reports `runtime=compatible`, `runtime=missing`, or
-`runtime=version-mismatch`. Compatibility is necessary but not sufficient for
-**BUILD-READY**; workspace, model boundary, controller evidence, and user
-authorization must also be valid.
+The doctor reports `runtime=suite-compatible` after exact byte, command, and
+Cage-backend discovery checks; failures remain literal. Compatibility is
+necessary but not sufficient for **BUILD-READY**; workspace, controller-evidence
+roots, and user authorization must also be valid. **MODEL-READY** is the next
+separate gate before any command that can call Ask.
 
 ## 2. Source-free suite installation
 
-Installation is a platform-steward action. The source-free input is the exact
-archive and checksum from:
+Installation is a platform-steward action. Inspect the steward skill's
+`scripts/install-bench-suite.sh`; run `plan`, obtain approval for its exact
+archive/hash/prefix/writes, then run `install --approve` with identical paths.
+The source-free input is the exact archive selected from:
 
 `https://github.com/patrickyoung/bench/releases/tag/v0.13.0`
 
-The steward selects the archive from observed `uname -s` and `uname -m`,
-downloads its sidecar checksum or the consolidated SHA256SUMS separately,
-verifies before extraction, inspects `INSTALL.md`, and installs to an explicit
-prefix. Never pipe a network response to a shell and never resolve independent
-component `@latest` versions as if they were a tested suite.
+The steward selects the archive from observed `uname -s` and `uname -m`. Its
+versioned helper embeds the reviewed SHA-256 for each supported archive,
+downloads only the selected archive, verifies it against that pin before
+extraction, and installs to an explicit prefix through the verified archive's
+installer. The helper does not download a checksum sidecar. Never pipe a
+network response to a shell and never resolve independent component `@latest`
+versions as if they were a tested suite.
+
+After verification, record **SUITE-INSTALLED**. Review `cage-plan`, then run the
+approved `cage-check` on the target host; only its literal 13/13 pass records
+**SUITE-READY**. If a nested Claude/Cowork sandbox blocks that kernel-level
+test, record **CAGE-HOST-CHECK-REQUIRED** and the exact host-terminal command.
+Then establish model access before the first command below that can call Ask. A
+Claude login is not an Ask
+credential. Record **MODEL-READY** only after the non-secret provider/model and
+approved controller-owned access pass the bounded probe in
+`model-readiness.md` for this lane. If they do not, preserve
+**MODEL-ACCESS-REQUIRED**, the earliest blocked command, its owner, and the exact
+sanitized command to resume; do not lose the completed installation. Record
+**AGENT-FIRST-RUN** only later, after one bounded `bench home run` has a literal
+retained result.
 
 ## 3. Open and admit a task contract
 
@@ -47,7 +68,7 @@ The business-friendly path is the interactive workbench in a dedicated
 workspace:
 
 ```text
-bench -C WORKSPACE -n -mode review
+bench -C WORKSPACE -m provider/model -n -mode review
 ```
 
 Start with Ask-only or no tools while negotiating. Inside the workbench:
@@ -67,10 +88,10 @@ the user accepts the exact proposal.
 The headless seam is available for an integration:
 
 ```text
-bench contract draft OUTCOME
+bench contract draft -m provider/model OUTCOME
 bench contract show -f SESSION
-bench contract accept -f SESSION -expect SHA256
-bench contract run -f SESSION
+bench contract accept -m provider/model -f SESSION -expect SHA256
+bench contract run -m provider/model -f SESSION
 ```
 
 `draft` and `revise` do not invoke Ply. `accept` requires the exact displayed
@@ -82,7 +103,7 @@ the proposal from the owner.
 Create a Draft project only after the business package is reviewed:
 
 ```text
-draft new PROJECT "reviewed description"
+DRAFT_MODEL=provider/model draft new PROJECT "reviewed description"
 draft check PROJECT
 ```
 
@@ -94,7 +115,7 @@ After the verifier and its authority are reviewed:
 
 ```text
 draft admit PROJECT
-draft build -admitted PROJECT
+draft build -admitted PROJECT -m provider/model
 draft prove PROJECT
 ```
 
@@ -108,17 +129,17 @@ check; it does not replace external business holdouts.
 Draft's design project and an Agent home are distinct artifacts. The current
 promotion bridge is orchestrated and reviewed, not one magic command.
 
-Create the home:
+Create the home through the suite entry point:
 
 ```text
-agent new HOME "reviewed standing job"
+bench home new HOME "reviewed standing job"
 ```
 
 Populate and inspect:
 
 ```text
-agent check HOME
-agent show HOME
+bench home check HOME
+bench home show HOME
 ```
 
 The home contains:
@@ -140,17 +161,19 @@ scaffold has placeholder work that must not be reported as complete.
 First run without network and without external effects:
 
 ```text
-agent run -checkpoint pilot HOME -- fixture-id
-agent history HOME check
-agent history HOME ls
+bench home run -m provider/model HOME -- fixture-id
+bench home history HOME check
+bench home history HOME ls
 ```
 
 Use a stable checkpoint only when continuation semantics are intended. A
 passing pre-check should cost no model turn. Preserve stdout, stderr, exit
 status, compiled composition, check evidence, and the external case score.
 
-Agent exits: 0 accepted, 1 negative verdict, 2 broken; composed filter statuses
-such as 3, 75, 125, and 130 retain their narrower meanings. Do not apply one
+For Agent run/tick/specialist, the composed Agent/Ply statuses are: 0 accepted;
+1 runtime, provider, or broken-verifier error; 2 not done or a bound reached; 3
+declined; 75 parked; 125 uncertain confinement; 130 interrupted. Agent `check`
+instead uses 0 valid, 1 invalid, and 2 usage/controller error. Do not apply one
 suite-wide meaning to every status.
 
 ## 7. Evidence connections

@@ -5,7 +5,7 @@
 - Operator:
 - Agent home and definition digest:
 - Bench suite / Agent version:
-- Operation: run / tick / inspect / act / learn / amend / retire
+- Operation: interactive / distinct run / resume / tick / schedule / supervise / inspect / act / learn / amend / retire
 - Checkpoint or unit of work:
 - Granted authority and budgets:
 - Explicitly absent authority:

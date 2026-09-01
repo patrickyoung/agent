@@ -5,8 +5,8 @@ commands. Do not silently combine it with a different suite.
 
 ## Skill release
 
-- Skill: `building-with-bench` 0.1.0
-- Reviewed: 2026-08-31
+- Skill: `building-with-bench` 0.2.0
+- Reviewed: 2026-09-01
 - Bench suite: 0.13.0
 - Agent: 0.2.1
 - Supported suite hosts: macOS and Linux, `amd64` and `arm64`
@@ -16,14 +16,24 @@ to clone or read any source repository. The official release is:
 
 `https://github.com/patrickyoung/bench/releases/tag/v0.13.0`
 
-It publishes one archive and checksum per supported platform plus a consolidated
-`bench-suite-0.13.0-SHA256SUMS` file. Prefer that consolidated checksum or the
-sidecar checksum downloaded independently from the archive.
+The steward helper contains an immutable archive name and reviewed SHA-256 for
+each supported platform. It downloads only the selected archive, then verifies
+those bytes against the embedded pin before extraction. It does not fetch a
+checksum sidecar during installation. An organization may independently compare
+the embedded pin with the release's published checksum material under its own
+supply-chain policy.
 
-## Read-only version doctor
+## Read-only suite doctor
 
-Run only commands that exist; missing commands are observations, not permission
-to install:
+Inspect `../scripts/doctor.sh`, then use it with an explicit install prefix,
+run-in-place suite directory, Bench executable, or PATH selection. It resolves
+the physical suite root, anchors its installed checksum manifest to one of the
+four reviewed release manifests, verifies every covered file, and calls all
+eighteen commands from that one root. With `--prefix`, it also proves all
+eighteen public entries resolve back to that exact suite. Matching version text
+from independently installed binaries is not a compatible suite.
+
+Missing commands are observations, not permission to install:
 
 ```text
 bench version
@@ -40,7 +50,12 @@ environment, tokens, cookies, headers, or credential values.
 Classify:
 
 - Exact suite and Agent versions: compatible.
-- Missing runtime: design-only until a steward provides it.
+- Missing runtime on a supported local Claude Code host: invoke the steward's
+  read-only install plan and ask for the exact setup decision; remain
+  design-only until that plan is approved and verification passes. Verification
+  earns **SUITE-INSTALLED**. The separately approved target-host `cage check`
+  must pass 13/13 to earn **SUITE-READY**; then test provider readiness
+  separately before model-backed Bench or Draft work.
 - Newer or older runtime: do not use the versioned command runbook. Read the
   installed public `help` output, ask the user whether to update this skill or
   use an explicitly compatible suite, and stop before build work.

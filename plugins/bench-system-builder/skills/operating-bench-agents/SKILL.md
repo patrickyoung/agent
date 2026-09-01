@@ -1,10 +1,10 @@
 ---
 name: operating-bench-agents
-description: Operates, diagnoses, changes, and retires an existing Bench Agent home. Use for pilots, runs, incidents, schedules, learning, amendments, or shutdown.
+description: Operates an existing Bench Agent home interactively, on demand, by checkpoint, tick, or reviewed host schedule; also diagnoses, changes, and retires it. Use after a home exists.
 license: MIT
 metadata:
   author: patrickyoung
-  version: "0.1.0"
+  version: "0.2.0"
   bench-suite: "0.13.0"
   agent: "0.2.1"
 ---
@@ -14,6 +14,11 @@ metadata:
 Operate an existing directory-shaped worker from its admitted definition,
 public commands, executable verdict, and controller evidence. Keep business
 ownership visible. Do not replace recorded state with a chat summary.
+
+Claude Code or Cowork may guide the operator. The worker itself always remains
+the Bench suite's Agent system, reached by `bench home`, the interactive
+`bench -home` view, or the exact suite `agent` executable. Never add a wrapper
+that becomes another loop, agent definition, scheduler, or state format.
 
 ## Route the request
 
@@ -46,10 +51,10 @@ exact Agent home, accountable owner, skill/runtime versions, execution location,
 and intended operation. Run only read-only public inspection:
 
 ```text
-agent version
-agent check HOME
-agent show HOME
-agent history HOME check
+/absolute/prefix/bin/bench version
+/absolute/prefix/bin/bench home check HOME
+/absolute/prefix/bin/bench home show HOME
+/absolute/prefix/bin/bench home history HOME check
 ```
 
 Classify:
@@ -68,7 +73,10 @@ Do not run in the last three states.
 
 Read [runbook.md](references/runbook.md). Distinguish:
 
-- **run** — pursue the durable goal now;
+- **run** — pursue the durable goal now as a distinct invocation;
+- **interactive** — open Bench's Agent-home operator view in a real terminal;
+- **resume** — repeat a named checkpoint only for the same intended Ask
+  conversation;
 - **tick** — run the cheap wake probe and call a model only when work exists;
 - **schedule** — an outer system decides when a fresh invocation begins;
 - **supervise** — Tend persists process transitions and explicit uncertainty;
@@ -88,7 +96,8 @@ Before a model-backed operation, show:
 - goal, input fixture or unit of work, and checkpoint semantics;
 - model and reasoning policy;
 - toolbox, shell, Cage, network, and writable roots;
-- time, turn, cycle, output, data, cost, proposal, and effect budgets;
+- bounds the selected public Agent command actually exposes, plus outer time,
+  output, data, cost, proposal, and effect controls owned by the caller;
 - check command and controller authority;
 - behavior for denial, timeout, interruption, broken verifier, and unknown
   effect.
@@ -98,9 +107,12 @@ or widen the standing definition.
 
 ## 4. Run and preserve evidence
 
-Use the literal public command appropriate to the operation. Record stdout,
-stderr, exit status, terminal reason, evidence path, and next human decision in
-the template from `assets/OPERATING-RECORD.md`.
+Use the literal public command appropriate to the operation. Prefer
+`bench home` so the selected suite supplies the exact Agent companions; use the
+absolute physical suite `bench` with its transparent `home` boundary in
+generated OS scheduler definitions for the same reason. Record stdout, stderr,
+exit status, terminal reason, evidence path, and next human decision in the
+template from `assets/OPERATING-RECORD.md`.
 
 For an accepted run, still review external business measures on the admitted
 cadence. For negative, broken, denied, parked, interrupted, or unknown results,
@@ -149,6 +161,44 @@ artifact, and state path is available to a fresh cloud session. A local folder
 or host binary is not durable cloud state merely because the original session
 could reach it.
 
+For supported local hosts, inspect
+`scripts/prepare-local-operations.sh`. Run its read-only `plan` with the exact
+home, verified Bench path, fresh output directory, cadence, and optional
+non-secret model identifier for planning. The plan reports
+**MODEL-IDENTIFIER-REQUIRED** when
+it is absent, and render requires it because a fresh checkpoint-free scheduler
+process cannot rely on an inherited model selection. The plan reports Cage
+backend discovery but does not call it enforcement proof. After wake fixtures
+and an equivalent bounded model probe in the fresh scheduler identity are
+proved and the render is approved, prefer `render --approve --run-cage-check`;
+it performs the separately disclosed transient 13/13 target-host check before
+writing anything. If a nested Claude/Cowork sandbox cannot perform that
+kernel-level check, return **CAGE-HOST-CHECK-REQUIRED** with the exact render
+command for the user to run in a terminal on that same host. An externally
+captured steward `cage-check` transcript may be used only when the operator
+explicitly attests it came from this host and exact suite; the helper checks the
+full pass markers, pinned suite-manifest digest, platform, host, and timestamp.
+The transcript is not
+cryptographically authenticated, so that same-host/freshness attestation remains
+an operator decision. The helper writes a concrete runbook and disabled launchd
+or systemd-user definition that directly calls
+the physical suite Bench executable's transparent `home ... tick` entry. The
+default is a distinct invocation with no checkpoint; add a named checkpoint
+only for explicitly approved same-conversation continuity. Inspect the files;
+activation is a separate approval and uses the host scheduler's public
+commands. The helper never enables a timer, stores a secret, adds network,
+disables Cage, or starts another runner.
+
+Treat the rendered definition as a local pilot scaffold, not a complete
+production scheduler. It does not itself enforce maximum runtime or model cost,
+rotate logs, deliver failure notifications, or supply the missing
+controller-owned provider credential seam. Require those controls in the
+surrounding platform before unattended production admission.
+
+Use Tend only when that exact Agent process needs crash-durable supervision.
+Tend does not own business cadence, auto-retry unknown effects, or replace the
+Agent checkpoint and check.
+
 ## 8. Retire completely
 
 Retirement is an explicit operation:
@@ -178,6 +228,12 @@ End with:
 
 ## Bundled resources
 
+- [prepare-local-operations.sh](scripts/prepare-local-operations.sh) — verifies
+  a home and renders a concrete runbook plus a disabled platform schedule.
+- [LOCAL-RUNBOOK.md](assets/LOCAL-RUNBOOK.md) — literal inspect, interactive,
+  run, resume, tick, history, pause, supervision, and retirement record.
+- [SCHEDULE-PLAN.md](assets/SCHEDULE-PLAN.md) — cadence, wake proof,
+  fresh-process access, activation, pause, and retirement decision.
 - [OPERATING-RECORD.md](assets/OPERATING-RECORD.md) — one literal operation and
   its status/evidence.
 - [INCIDENT.md](assets/INCIDENT.md) — facts, uncertainty, owning layer, and

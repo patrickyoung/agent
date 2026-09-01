@@ -4,7 +4,7 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 plugin="$root/plugins/bench-system-builder"
 downloads="$root/docs/downloads"
-version=0.1.0
+version=0.2.0
 
 command -v zip >/dev/null 2>&1 || {
   printf '%s\n' 'package-skill-downloads: zip is required' >&2
@@ -30,7 +30,7 @@ package_dir() {
   rm -rf "$package_root"
   mkdir -p "$package_root"
   cp -R "$source_dir" "$package_root/$base_name"
-  find "$package_root" -exec touch -t 202608310000 {} +
+  find "$package_root" -exec touch -t 202609010000 {} +
 
   rm -f "$archive"
   (

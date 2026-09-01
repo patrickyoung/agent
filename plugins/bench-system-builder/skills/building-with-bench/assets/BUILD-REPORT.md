@@ -20,6 +20,11 @@
 | Draft build |  |  |  |  |
 | Draft prove |  |  |  |  |
 | Agent check/show |  |  |  |  |
+| Accepted/rejected check fixtures |  |  |  |  |
+| Quiet/wake/broken wake fixtures, when used |  |  |  |  |
+| Provider/model readiness |  |  |  |  |
+| First bounded local run |  |  |  |  |
+| Local runbook rendered |  |  |  |  |
 | External cases |  |  |  |  |
 | Authority review |  |  |  |  |
 | Pilot controls |  |  |  |  |

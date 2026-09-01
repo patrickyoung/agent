@@ -6,6 +6,9 @@
 - Current readiness:
 - Smallest missing capability/decision:
 - Claim blocked by this gap:
+- Setup-to-run milestone: SUITE-INSTALLED / CAGE-HOST-CHECK-REQUIRED / SUITE-READY / MODEL-ACCESS-REQUIRED / MODEL-READY / AGENT-FIRST-RUN
+- Earliest blocked model-backed gate:
+- Exact sanitized command to resume after approval:
 
 ## Claude surface and runtime
 

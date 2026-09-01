@@ -9,8 +9,10 @@ the Bench execution location are separate questions.
 
 - Plugin install: add the `patrickyoung/agent` marketplace and install
   `bench-system-builder@bench-agent-tools`.
-- One-session plugin trial: load the downloaded plugin ZIP with
-  `claude --plugin-dir ./bench-system-builder.zip`.
+- One-session plugin trial on Claude Code 2.1.128 or newer: inspect the
+  downloaded plugin ZIP, then load it directly with
+  `claude --plugin-dir ./bench-system-builder-0.2.0.zip`. On older releases,
+  extract it and pass the `./bench-system-builder` directory.
 - Standalone personal skill: extract the skill folder beneath
   `~/.claude/skills/`.
 - Standalone project skill: extract it beneath `.claude/skills/` in the project.
@@ -21,9 +23,10 @@ directory. Review every downloaded skill before trusting it.
 ### Runtime
 
 On macOS or Linux, Claude Code can invoke a locally installed compatible suite.
-The source-free path is the platform-specific Bench release archive and its
-checksum. Never use `curl | sh`, never choose an architecture by guess, and do
-not install until the user approves the target prefix.
+The source-free path is the platform-specific Bench release archive verified
+against the versioned steward helper's embedded SHA-256 pin. Never use
+`curl | sh`, never choose an architecture by guess, and do not install until the
+user approves the target prefix.
 
 A present skill does not grant shell tools. A present binary does not grant the
 user's approval to run it.

@@ -26,12 +26,12 @@ from a cloud-only conversation.
 
 ## Read-only preflight
 
-Record:
+Record through the exact suite entry point:
 
-- `agent version` and `bench version`;
-- `agent check HOME` exit status and evidence;
-- `agent show HOME` composition and authority;
-- `agent history HOME check` result;
+- `/absolute/prefix/bin/bench version`;
+- `bench home check HOME` exit status and evidence;
+- `bench home show HOME` composition and authority;
+- `bench home history HOME check` result;
 - OS/architecture and execution location;
 - writable roots and controller evidence location;
 - whether required sources and connectors are reachable by the operating
@@ -40,3 +40,10 @@ Record:
 
 Do not run `agent tick`, `agent run`, authenticate, or change anything during
 preflight.
+
+An interactive operator view is
+`bench -C PARENT -m provider/model -home NAME` in a real terminal, using the
+same non-secret model identifier whose readiness was proved for that lane.
+Headless and scheduled operations remain the same suite Agent reached through
+`bench home` or the absolute sibling `agent`; no Claude session becomes the
+worker runtime.
